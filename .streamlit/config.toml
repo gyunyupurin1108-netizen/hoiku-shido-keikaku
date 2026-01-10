@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#FF9AA2"         # アクセントカラー（優しいサーモンピンク）
+backgroundColor = "#FFFDF9"      # 背景色（真っ白ではなく、目に優しいクリーム色）
+secondaryBackgroundColor = "#FFF0F5" # サイドバーの背景色（薄い桜色）
+textColor = "#5D5C61"            # 文字色（真っ黒ではなく、柔らかいグレー）
+font = "sans serif"
