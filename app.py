@@ -251,6 +251,8 @@ age = st.sidebar.selectbox("対象年齢", ["0歳児", "1歳児", "2歳児", "3�
 mode = st.sidebar.radio("作成する書類", ["年間指導計画", "月間指導計画"])
 orient = st.sidebar.radio("用紙向き", ["横", "縦"])
 
+st.sidebar.link_button("☕ 掲示板で一息つく", "https://hoiku-bbs-ez5sr2ocp4ni2r4ypxuqx6.streamlit.app/")
+
 # ==========================================
 # モードA：年間指導計画
 # ==========================================
@@ -513,4 +515,5 @@ if mode == "週案":
             'values': user_values
         }
         excel_data = create_weekly_excel(age, config, orient)
+
         st.download_button("📥 ダウンロード", excel_data, f"{age}_週案_{date_str}.xlsx")
