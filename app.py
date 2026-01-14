@@ -224,7 +224,7 @@ def ask_gemini_aim(age, keywords):
         return "エラー: APIキーが設定されていません。"
     
     try:
-        model = genai.GenerativeModel('gemini-pro') # 高速なモデルを使用
+        model = genai.GenerativeModel('gemini-1.5-flash') # 高速なモデルを使用
         
         prompt = f"""
         あなたはベテラン保育士です。
@@ -432,6 +432,7 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+
 
 
 
