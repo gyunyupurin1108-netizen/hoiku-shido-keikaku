@@ -6,7 +6,14 @@ import pandas as pd
 import datetime
 import json
 from streamlit_gsheets import GSheetsConnection
+import google.generativeai as genai
 
+# SecretsからAPIキーを読み込む（設定されていない場合のエラー回避付き）
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    has_api_key = True
+else:
+    has_api_key = False
 # --- 0. ページ設定 ---
 st.set_page_config(page_title="保育指導計画システム", layout="wide", page_icon="📛")
 
@@ -210,7 +217,32 @@ def create_weekly_excel(age, config, orientation):
     output = BytesIO()
     wb.save(output)
     return output.getvalue()
-
+# ▼▼▼ 追加コードここから ▼▼▼
+def ask_gemini_aim(age, keywords):
+    """Geminiにねらいの文章を考えてもらう関数"""
+    if not has_api_key:
+        return "エラー: APIキーが設定されていません。"
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash') # 高速なモデルを使用
+        
+        prompt = f"""
+        あなたはベテラン保育士です。
+        以下の条件で、月間指導計画の「ねらい」の文章を1つ作成してください。
+        
+        【条件】
+        ・対象年齢: {age}
+        ・キーワード: {keywords}
+        ・文体: 「〜する。」「〜しようとする。」などの保育指導計画に適した文末。
+        ・長さ: 60文字〜100文字程度
+        ・出力内容: 文章のみを出力すること（挨拶などは不要）。
+        """
+        
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return f"AIエラー: {e}"
+# ▲▲▲ 追加コードここまで ▲▲▲
 
 # --- 4. メイン画面構築 ---
 
@@ -305,7 +337,29 @@ if mode == "年間指導計画":
 # ==========================================
 elif mode == "月間指導計画":
     st.header(f"📝 {age} 月間指導計画")
-    
+    # ▼▼▼ 追加コード：AIアシスタントエリア ▼▼▼
+    with st.expander("🤖 AIアシスタント（キーワードから『ねらい』を作成）", expanded=True):
+        c_ai1, c_ai2, c_ai3 = st.columns([2, 1, 1])
+        with c_ai1:
+            ai_keywords = st.text_input("キーワードを入力", placeholder="例：雪遊び 手袋 貸し借り 感染症予防")
+        with c_ai2:
+            target_week = st.selectbox("反映先", ["第1週", "第2週", "第3週", "第4週"])
+        with c_ai3:
+            st.write("") # レイアウト調整用
+            if st.button("✨ AI作成"):
+                if not ai_keywords:
+                    st.error("キーワードを入れてください")
+                else:
+                    with st.spinner("AIが執筆中..."):
+                        generated_text = ask_gemini_aim(age, ai_keywords)
+                        
+                        # 生成されたテキストを、対象の週の「ねらい」入力欄にセットする
+                        # ※前回のコードで、ねらいのキーは "w{週番号}_6" となっていました
+                        week_num = target_week.replace("第", "").replace("週", "") # "1", "2"...
+                        target_key = f"w{week_num}_6"
+                        
+                        st.session_state[target_key] = generated_text
+                        st.success(f"{target_week}の『ねらい』に入力しました！")
     # 日付などは保存対象外（毎回選択）とする運用がシンプル
     month_date = st.date_input("対象月", value=datetime.date.today())
     month_str = month_date.strftime("%Y年%m月")
@@ -378,4 +432,5 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+
 
