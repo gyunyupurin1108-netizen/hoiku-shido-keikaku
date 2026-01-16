@@ -219,13 +219,17 @@ def create_weekly_excel(age, config, orientation):
     return output.getvalue()
 # ▼▼▼ 追加コードここから ▼▼▼
 def ask_gemini_aim(age, keywords):
+    # 関数のすぐ内側で、最新のAPIキーを再度セットする
+    api_key = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=api_key)
+    
     """Geminiにねらいの文章を考えてもらう関数"""
     if not has_api_key:
         return "エラー: APIキーが設定されていません。"
     
     try:
         # モデル名を「最新版のフラッシュ」に固定します
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
         
         prompt = f"""
         あなたはベテラン保育士です。
@@ -438,6 +442,7 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+
 
 
 
