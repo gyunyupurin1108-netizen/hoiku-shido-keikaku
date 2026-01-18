@@ -229,7 +229,7 @@ def ask_gemini_aim(age, keywords):
     try:
         # モデル名はこれで完璧です！
         # リストの0番目にあったこの名前に書き換えてください
-　      model = genai.GenerativeModel('models/gemini-2.5-flash')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         
         prompt = f"""
         あなたはベテラン保育士です。
@@ -436,5 +436,6 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+
 
 
