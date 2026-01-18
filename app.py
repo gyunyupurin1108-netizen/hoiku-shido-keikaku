@@ -228,7 +228,8 @@ def ask_gemini_aim(age, keywords):
     
     try:
         # モデル名はこれで完璧です！
-        model = genai.GenerativeModel('gemini-pro')
+        # リストの0番目にあったこの名前に書き換えてください
+　      model = genai.GenerativeModel('models/gemini-2.5-flash')
         
         prompt = f"""
         あなたはベテラン保育士です。
@@ -456,4 +457,5 @@ if st.button("モデル一覧を取得"):
     except Exception as e:
         st.error(f"❌ 接続失敗: {e}")
 # ▲▲▲ 診断用コードここまで ▲▲▲
+
 
