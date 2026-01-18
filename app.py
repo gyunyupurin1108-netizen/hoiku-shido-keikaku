@@ -435,4 +435,25 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+# ▼▼▼ 診断用コード（テストが終わったら消してOK） ▼▼▼
+st.markdown("---")
+st.subheader("🔑 APIキー接続テスト")
+if st.button("モデル一覧を取得"):
+    try:
+        # APIキーを使って、使えるAIの一覧を聞き出す
+        models = genai.list_models()
+        found_models = []
+        for m in models:
+            if 'generateContent' in m.supported_generation_methods:
+                found_models.append(m.name)
+        
+        if found_models:
+            st.success("✅ 接続成功！このキーで使えるモデル一覧:")
+            st.write(found_models)
+        else:
+            st.warning("⚠️ 接続はできましたが、使えるモデルがありません。")
+            
+    except Exception as e:
+        st.error(f"❌ 接続失敗: {e}")
+# ▲▲▲ 診断用コードここまで ▲▲▲
 
