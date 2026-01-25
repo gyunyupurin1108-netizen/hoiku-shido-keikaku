@@ -387,11 +387,18 @@ elif mode == "月間指導計画":
             for r_num, label in l_mid.items():
                 # keyを一意にする: w(週)_(行番号)
                 k = f"w{i+1}_{r_num}"
-                # 定型文がある項目はselectbox、なければtext_areaに自動切替
-                if label in age_data:
+                
+               # --- ここから修正 ---
+                # 「ねらい」だけはAIや自由入力のために最初からテキストエリアにする
+                if label == "ねらい":
+                    val = st.text_area(label, key=k, height=100)
+                # それ以外の項目で定型文がある場合はプルダウンにする
+                elif label in age_data:
                     val = st.selectbox(label, age_data[label] + ["自由入力"], key=k)
+                # 定型文がない項目はテキストエリア
                 else:
                     val = st.text_area(label, key=k, height=60)
+                # --- ここまで修正 ---
                 user_values[f"{label}_週{i+1}"] = val
                 
                 if label == "ねらい":
@@ -436,6 +443,7 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+
 
 
 
