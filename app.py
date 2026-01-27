@@ -217,8 +217,9 @@ def create_weekly_excel(age, config, orientation):
     output = BytesIO()
     wb.save(output)
     return output.getvalue()
-# ▼▼▼ 追加コードここから ▼▼▼
-def ask_gemini_aim(age, keywords):
+
+# ▼▼▼ 修正後の万能AI関数 ▼▼▼
+def ask_gemini_aim(age, keywords, doc_type="月間指導計画"):
     # SecretsからAPIキーを取得
     if "GEMINI_API_KEY" not in st.secrets:
         return "エラー: APIキーがSecretsに設定されていません。"
@@ -227,18 +228,26 @@ def ask_gemini_aim(age, keywords):
     genai.configure(api_key=api_key)
     
     try:
-        # モデル名はこれで完璧です！
-        # リストの0番目にあったこの名前に書き換えてください
+        # モデル指定（2.5-flash）
         model = genai.GenerativeModel('models/gemini-2.5-flash')
         
+        # 書類タイプによって命令文を変える
+        if doc_type == "年間指導計画":
+            target_desc = "1年間を通した長期的な「年間目標」"
+        elif doc_type == "週案":
+            target_desc = "1週間（月〜土）の短期的な「週のねらい」"
+        else:
+            target_desc = "1ヶ月間の「月間ねらい」"
+
         prompt = f"""
         あなたはベテラン保育士です。
-        以下の条件で、月間指導計画の「ねらい」の文章を1つ作成してください。
+        以下の条件で、{doc_type}における{target_desc}の文章を1つ作成してください。
         
         【条件】
         ・対象年齢: {age}
         ・キーワード: {keywords}
-        ・文体: 保育の専門用語を用い、最後は「〜する。」で終える。
+        ・文体: 保育の専門用語を用い、最後は「〜する。」などの言い切りで終える。
+        ・文字数: 100文字〜150文字程度
         """
         
         response = model.generate_content(prompt)
@@ -246,7 +255,8 @@ def ask_gemini_aim(age, keywords):
             
     except Exception as e:
         return f"接続エラー: {str(e)}"
-# ▲▲▲ 追加コードここまで ▲▲▲
+# ▲▲▲ 修正ここまで ▲▲▲
+
 
 # --- 4. メイン画面構築 ---
 
@@ -300,11 +310,27 @@ if c2.button("データ読込"):
 
 
 # ==========================================
-# モードA：年間指導計画
+# モードA：年間指導計画（修正版）
 # ==========================================
 if mode == "年間指導計画":
     st.header(f"📅 {age} 年間指導計画")
-    
+
+    # ▼ AIアシスタント（年間用）
+    with st.expander("🤖 AIアシスタント（年間目標を作成）", expanded=True):
+        c_ai1, c_ai2 = st.columns([3, 1])
+        with c_ai1:
+            ai_keywords = st.text_input("キーワード", placeholder="例：基本的生活習慣 信頼関係 自然との触れ合い")
+        with c_ai2:
+            if st.button("✨ 年間目標作成"):
+                if ai_keywords:
+                    with st.spinner("AIが思考中..."):
+                        # doc_type="年間指導計画" を指定
+                        gen_text = ask_gemini_aim(age, ai_keywords, doc_type="年間指導計画")
+                        st.session_state["年間目標"] = gen_text # 保存用キーに直接入れる
+                        st.success("作成しました！下の「年間目標」を確認してください。")
+                else:
+                    st.error("キーワードを入れてください")
+
     default_items = "園児の姿\nねらい\n養護（生命・情緒）\n教育（5領域）\n環境構成・援助\n保護者支援\n行事"
     mid_item_list = st.text_area("項目設定（改行区切り）", default_items).split('\n')
 
@@ -313,21 +339,38 @@ if mode == "年間指導計画":
 
     with t1:
         st.subheader("年間を通じた目標")
-        # keyを指定することで、session_stateに直接値が入る（保存・読込に対応）
+        # AIが作ったテキストが反映されるように session_state を活用
         user_values["年間目標"] = st.text_area("年間目標", key="年間目標", height=100)
         user_values["健康・安全"] = st.text_area("健康・安全・災害対策", key="健康・安全", height=100)
 
     with t2:
+        # ▼ ここからプルダウン化の処理
+        # 注意: TEIKEI_DATAにデータがないと選択肢が出ないので、
+        # まだデータがない項目のために「自由入力」を必ず追加しています。
         cols = st.columns(4)
+        
+        # その年齢の定型文データを取得
+        age_data = TEIKEI_DATA.get(age, {})
+        
         for i, term in enumerate(TERMS):
             with cols[i]:
                 st.markdown(f"**{term}**")
                 for item in mid_item_list:
                     k = f"{item}_{term}"
-                    val = st.text_area(f"{item}", key=k, height=100)
+                    
+                    # 定型文があるかチェック
+                    if item in age_data:
+                        # 定型文がある場合 → プルダウン
+                        options = age_data[item] + ["（自由入力）"]
+                        val = st.selectbox(f"{item}", options, key=k)
+                    else:
+                        # 定型文がない場合 → テキストエリア（または「データなし」と表示してもOK）
+                        # ここでは使い勝手のためテキストエリアを残しますが、完全プルダウン化したい場合は
+                        # 空のリスト ["（選択肢なし）"] などを表示することになります
+                        val = st.text_area(f"{item}", key=k, height=100)
+                    
                     user_values[k] = val
                     
-                    # 連動用データ保持
                     if term not in st.session_state['annual_data']: st.session_state['annual_data'][term] = {}
                     st.session_state['annual_data'][term][item] = val
 
@@ -413,25 +456,44 @@ elif mode == "月間指導計画":
         st.download_button("📥 ダウンロード", data, f"月案_{month_str}.xlsx")
 
 # ==========================================
-# モードC：週案
+# モードC：週案（修正版）
 # ==========================================
 elif mode == "週案":
     st.header(f"📅 {age} 週案")
-    
     start_date = st.date_input("週の開始日")
-    
+
+    # ▼ AIアシスタント（週案用）
+    with st.expander("🤖 AIアシスタント（週のねらいを作成）", expanded=True):
+        c_wk1, c_wk2 = st.columns([3, 1])
+        with c_wk1:
+            wk_keywords = st.text_input("今週のキーワード", placeholder="例：散歩 秋の自然 運動会練習 トイレトレーニング")
+        with c_wk2:
+            if st.button("✨ 週案作成"):
+                if wk_keywords:
+                    with st.spinner("AIが思考中..."):
+                        # doc_type="週案" を指定
+                        gen_wk_text = ask_gemini_aim(age, wk_keywords, doc_type="週案")
+                        st.session_state['weekly_aim_input'] = gen_wk_text
+                        st.success("作成しました！")
+                else:
+                    st.error("キーワードを入れてください")
+
     if st.button("月案からねらい引用"):
         w_aim = st.session_state['monthly_data'].get("ねらい_週1", "")
         if w_aim:
-            st.session_state['weekly_aim_input'] = w_aim # 下のtext_areaに反映される
+            st.session_state['weekly_aim_input'] = w_aim
             st.rerun()
 
     user_values = {}
-    # keyを指定して、保存データが読み込まれたらここに表示されるようにする
+    # AIの結果がここに入る
     user_values["weekly_aim"] = st.text_area("週のねらい", key="weekly_aim_input", height=80)
     
     days = ["月", "火", "水", "木", "金", "土"]
     cols = st.columns(3)
+    
+    # 週案の活動内容などもプルダウンにしたい場合、TEIKEI_DATAに
+    # "活動_月", "活動_火"... のようなデータが必要になります。
+    # 現状はデータがないため、テキストエリアのままにしています。
     for i, day in enumerate(days):
         with cols[i%3]:
             st.subheader(f"{day}曜日")
@@ -443,8 +505,6 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
-
-
 
 
 
