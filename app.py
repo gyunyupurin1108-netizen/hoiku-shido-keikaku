@@ -807,7 +807,35 @@ elif mode == "週案":
     if st.button("🚀 Excel作成"):
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
+        # ▼▼▼ プレビュー機能 ▼▼▼
+    st.markdown("---")
+    st.subheader("👀 仕上がりプレビュー")
+    
+    # 紙のような白い枠を作る
+    with st.container(border=True):
+        st.markdown(f"#### 📅 週のねらい")
+        st.info(user_values.get("weekly_aim", "（未入力）"))
+        
+        st.markdown("#### 📅 日ごとの計画")
+        # 3列で表示して見やすくする
+        pv_cols = st.columns(3)
+        days = ["月", "火", "水", "木", "金", "土"]
+        
+        for i, day in enumerate(days):
+            with pv_cols[i % 3]:
+                st.markdown(f"**【{day}曜日】**")
+                # 内容があれば表示、なければ「-」
+                act = user_values.get(f"activity_{day}", "-")
+                care = user_values.get(f"care_{day}", "-")
+                
+                st.caption("▼活動")
+                st.write(act if act else "（未入力）")
+                st.caption("▼配慮")
+                st.write(care if care else "（未入力）")
+                st.divider() # 区切り線
+    # ▲▲▲ プレビューここまで ▲▲▲
         st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+
 
 
 
