@@ -834,7 +834,8 @@ elif mode == "週案":
                 st.write(care if care else "（未入力）")
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
-        st.download_button("📥 ダウンロード", data, f"週案_{age}.xlsx")
+        st.download_button("📥 ダウンロード", data, "週案_作成データ.xlsx")
+
 
 
 
