@@ -807,6 +807,11 @@ elif mode == "週案":
     if st.button("🚀 Excel作成"):
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
+        st.download_button("📥 ダウンロード", data, file_name)
+
+
+
+
         # ▼▼▼ プレビュー機能 ▼▼▼
     st.markdown("---")
     st.subheader("👀 仕上がりプレビュー")
@@ -834,10 +839,7 @@ elif mode == "週案":
                 st.write(care if care else "（未入力）")
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
-       # もし age という変数が存在しなければ "未設定" という文字を使う
-file_name = f"週案_{age}.xlsx" if 'age' in locals() else "週案_作成データ.xlsx"
-st.download_button("📥 ダウンロード", data, file_name)
-
+    
 
 
 
