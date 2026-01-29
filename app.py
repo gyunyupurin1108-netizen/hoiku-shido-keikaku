@@ -677,6 +677,29 @@ if mode == "年間指導計画":
                     if term not in st.session_state['annual_data']: st.session_state['annual_data'][term] = {}
                     st.session_state['annual_data'][term][item] = val
 
+    # ▼▼▼ プレビュー機能 ▼▼▼
+    st.markdown("---")
+    st.subheader("👀 仕上がりプレビュー")
+
+    with st.container(border=True):
+        st.markdown(f"### 🌙 {month_str} 指導計画")
+        
+        # 4週間分を並べて表示
+        for i in range(4):
+            week_num = i + 1
+            with st.expander(f"第 {week_num} 週の内容を確認", expanded=True):
+                # ユーザーが入力したデータを取得して表示
+                w_aim = user_values.get(f"ねらい_週{week_num}", "（未入力）")
+                st.markdown(f"**🎯 ねらい**: {w_aim}")
+                
+                # その他の項目をリストで表示
+                for r_num, label in l_mid.items():
+                    if label != "ねらい": # ねらい以外を表示
+                        val = user_values.get(f"{label}_週{week_num}", "-")
+                        if val:
+                            st.text(f"【{label}】: {val}")
+    # ▲▲▲ プレビューここまで ▲▲▲
+
     if st.button("🚀 Excel作成"):
         config = {'mid_items': mid_item_list, 'values': user_values}
         data = create_annual_excel(age, config, orient)
@@ -840,6 +863,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
