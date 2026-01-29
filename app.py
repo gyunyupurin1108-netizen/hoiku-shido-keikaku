@@ -758,6 +758,7 @@ elif mode == "月間指導計画":
     if st.button("🚀 Excel作成"):
         config = {**{f'l_mid{r}': val for r, val in l_mid.items()}, 'values': user_values}
         data = create_monthly_excel(age, month_str, config, num_weeks, orient)
+        st.download_button("📥 ダウンロード", data, f"月案_{month_str}.xlsx")
         # ▼▼▼ プレビュー機能 ▼▼▼
     st.markdown("---")
     st.subheader("👀 仕上がりプレビュー")
@@ -780,7 +781,6 @@ elif mode == "月間指導計画":
                         if val:
                             st.text(f"【{label}】: {val}")
     # ▲▲▲ プレビューここまで ▲▲▲
-                            st.download_button("📥 ダウンロード", data, f"月案_{month_str}.xlsx")
 
 # ==========================================
 # モードC：週案（修正版）
@@ -864,6 +864,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
