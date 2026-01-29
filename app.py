@@ -683,6 +683,30 @@ if mode == "年間指導計画":
         config = {'mid_items': mid_item_list, 'values': user_values}
         data = create_annual_excel(age, config, orient)
         st.download_button("📥 ダウンロード", data, f"年間計画_{age}.xlsx")
+        # ▼▼▼ プレビュー機能 ▼▼▼
+    st.markdown("---")
+    st.subheader("👀 仕上がりプレビュー")
+    
+    with st.container(border=True):
+        st.markdown("### 📅 年間指導計画表")
+        
+        # データを表形式（DataFrame）に変換して表示
+        import pandas as pd
+        
+        # プレビュー用のデータを作る
+        preview_data = {}
+        for term in TERMS: # 1期, 2期...
+            term_values = []
+            for item in mid_item_list: # ねらい, 養護...
+                # 入力された値を取り出す
+                val = st.session_state.get('annual_data', {}).get(term, {}).get(item, "")
+                term_values.append(val)
+            preview_data[term] = term_values
+            
+        # 表を作成
+        df_preview = pd.DataFrame(preview_data, index=mid_item_list)
+        st.dataframe(df_preview, use_container_width=True)
+    # ▲▲▲ プレビューここまで ▲▲▲
 
 # ==========================================
 # モードB：月間指導計画
@@ -864,6 +888,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
