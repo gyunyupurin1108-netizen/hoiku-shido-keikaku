@@ -828,8 +828,12 @@ elif mode == "週案":
         st.subheader("🤖 AI週案クリエイター")
         st.info("「今週のねらい」を入力してボタンを押すと、月〜土の計画を一括で提案します。")
         
+        # AIが生成した文章があればそれを使い、なければ空文字にする
+        current_aim = st.session_state.get("weekly_aim", "")
+
         weekly_aim = st.text_area("今週のねらい（キーワードでもOK）", 
-                                  key="weekly_aim_input", 
+                                  value=current_aim, # ここでAI生成結果を表示
+                                  key="weekly_aim_input_widget", # キー名を変更して衝突回避
                                   height=80,
                                   placeholder="例：秋の自然に触れながら、戸外で体を動かして遊ぶ。")
 
@@ -877,18 +881,22 @@ elif mode == "週案":
                             schedule_data = json.loads(json_str) 
                             
                             # ★ここで「AIが作ったねらいの文章」を画面の入力欄に上書きする！
+                           if match:
+                            json_str = match.group(0)
+                            schedule_data = json.loads(json_str) 
+                            
+                            # 直接代入するのではなく、各項目をステートに保存
                             if "weekly_aim_sentence" in schedule_data:
-                                # session_stateを更新して画面に反映
-                                st.session_state["weekly_aim_input"] = schedule_data["weekly_aim_sentence"]
+                                # 入力欄のキー(weekly_aim_input)ではなく、表示用のデータとして保存
+                                st.session_state["weekly_aim"] = schedule_data["weekly_aim_sentence"]
 
-                            # 日々のデータの反映
                             for day_key, data_val in schedule_data.items():
                                 if day_key in days:
                                     st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
                                     st.session_state[f"care_{day_key}"] = data_val.get("care", "")
                                     st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
                             
-                            st.success("作成しました！「ねらい」も文章に整えました。")
+                            st.success("作成しました！")
                             st.rerun()
                         else:
                             st.error("データの取得に失敗しました。もう一度ボタンを押してみてください。")
@@ -951,6 +959,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
