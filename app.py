@@ -880,7 +880,7 @@ elif mode == "週案":
                             schedule_data = json.loads(json_str) 
                             
                             # ★ここで「AIが作ったねらいの文章」を画面の入力欄に上書きする！
-                           if match:
+                        if match:
                             json_str = match.group(0)
                             schedule_data = json.loads(json_str) 
                             
@@ -958,6 +958,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
