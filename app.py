@@ -828,12 +828,13 @@ elif mode == "週案":
         st.subheader("🤖 AI週案クリエイター")
         st.info("「今週のねらい」を入力してボタンを押すと、月〜土の計画を一括で提案します。")
         
-        # AIが生成した文章があればそれを使い、なければ空文字にする
-        current_aim = st.session_state.get("weekly_aim", "")
+       # AIが生成した文章がsession_stateにあればそれを優先し、なければ空文字にする
+        # ただし、一度も生成していない時はユーザーが入力したキーワードを保持できるようにする
+        initial_aim = st.session_state.get("ai_generated_aim", "")
 
         weekly_aim = st.text_area("今週のねらい（キーワードでもOK）", 
-                                  value=current_aim, # ここでAI生成結果を表示
-                                  key="weekly_aim_input_widget", # キー名を変更して衝突回避
+                                  value=initial_aim, # AIの文章をここに流し込む
+                                  key="weekly_aim_input_widget", 
                                   height=80,
                                   placeholder="例：秋の自然に触れながら、戸外で体を動かして遊ぶ。")
 
@@ -884,11 +885,12 @@ elif mode == "週案":
                             json_str = match.group(0)
                             schedule_data = json.loads(json_str) 
                             
-                            # 直接代入するのではなく、各項目をステートに保存
+                            # AIが作った「文章になったねらい」を保存
                             if "weekly_aim_sentence" in schedule_data:
-                                # 入力欄のキー(weekly_aim_input)ではなく、表示用のデータとして保存
-                                st.session_state["weekly_aim"] = schedule_data["weekly_aim_sentence"]
+                                # ★重要：入力欄のキー（weekly_aim_input_widget）とは別の名前に保存
+                                st.session_state["ai_generated_aim"] = schedule_data["weekly_aim_sentence"]
 
+                            # 日々のデータの反映
                             for day_key, data_val in schedule_data.items():
                                 if day_key in days:
                                     st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
@@ -896,7 +898,7 @@ elif mode == "週案":
                                     st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
                             
                             st.success("作成しました！")
-                            st.rerun()
+                            st.rerun() # ここで画面を更新
                         else:
                             st.error("データの取得に失敗しました。もう一度ボタンを押してみてください。")
                             
@@ -922,8 +924,12 @@ elif mode == "週案":
     # ▼ プレビューとExcel出力
     st.markdown("---")
     if st.button("🚀 Excel作成"):
+        # weekly_aim変数には st.text_area の現在の（書き換え後の）内容が入っています
+        user_values["weekly_aim"] = weekly_aim 
+        
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
-        data = create_weekly_excel(age, config, orient)
+        data = create_weekly_excel(age, config)
+        # ...以下ダウンロードボタン
         
         # インデント修正済みのダウンロードボタン
         file_name = f"週案_{age}.xlsx" if 'age' in locals() else "週案_作成データ.xlsx"
@@ -958,6 +964,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
