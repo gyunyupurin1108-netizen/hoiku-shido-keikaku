@@ -839,25 +839,28 @@ elif mode == "週案":
             else:
                 with st.spinner("AIが6日分のカリキュラムを考案中..."):
                     try:
-                        # プロンプト（AIへの命令文）
+                       # プロンプト（AIへの命令文）を修正
                         prompt = f"""
                         あなたはベテラン保育士です。以下の条件で週案を作成し、JSON形式のみを出力してください。
-                        余計な挨拶やMarkdown記号（```json 等）は一切不要です。
                         
                         【条件】
                         ・対象年齢: {age}
-                        ・今週のねらい: {weekly_aim}
+                        ・今週のねらい（キーワード）: {weekly_aim}
                         ・月〜土の6日分
-                        ・キーは必ず "月", "火", "水", "木", "金", "土" にする
-                        【禁止事項】
-                        ・「【冬】」や「キーワード：〇〇」のように、入力されたキーワードをそのまま見出しやタグとして文中に含めないこと。
-                        ・キーワードはあくまで「活動の内容」として自然な文章の中に溶け込ませること。
-                        ・「ねらい」という言葉も文中に含めないこと。
                         
-                        【出力データの例（この形式を守ること）】
+                        【必須指示】
+                        1. 「ねらい（weekly_aim_sentence）」は、入力されたキーワードを元に、保育指針に基づいた自然な「文章」に書き換えること（「〜する」調）。
+                        2. 各活動内容はキーワードをそのまま使わず、具体的な活動として文章化すること。
+                        
+                        【出力フォーマット（厳守）】
                         {{
-                            "月": {{"activity": "活動内容...", "care": "配慮...", "tool": "準備..."}},
-                            "火": {{"activity": "...", "care": "...", "tool": "..."}}
+                            "weekly_aim_sentence": "（ここにキーワードを文章化したものを入れる）",
+                            "月": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "火": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "水": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "木": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "金": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "土": {{"activity": "...", "care": "...", "tool": "..."}}
                         }}
                         """
                         
@@ -865,23 +868,27 @@ elif mode == "週案":
                         model = genai.GenerativeModel('models/gemini-2.5-flash')
                         response = model.generate_content(prompt)
                         
-                        # ▼▼▼ 修正ポイント：ここを強力にしました ▼▼▼
-                        # AIの回答から { で始まり } で終わる部分だけを無理やり抜き出す
+                        # JSON抽出（前回追加した部分）
                         text_content = response.text
                         match = re.search(r'\{.*\}', text_content, re.DOTALL)
                         
                         if match:
                             json_str = match.group(0)
-                            schedule_data = json.loads(json_str) # 変換
+                            schedule_data = json.loads(json_str) 
                             
-                            # データの反映
+                            # ★ここで「AIが作ったねらいの文章」を画面の入力欄に上書きする！
+                            if "weekly_aim_sentence" in schedule_data:
+                                # session_stateを更新して画面に反映
+                                st.session_state["weekly_aim_input"] = schedule_data["weekly_aim_sentence"]
+
+                            # 日々のデータの反映
                             for day_key, data_val in schedule_data.items():
                                 if day_key in days:
                                     st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
                                     st.session_state[f"care_{day_key}"] = data_val.get("care", "")
                                     st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
                             
-                            st.success("作成しました！下の欄を確認・修正してください。")
+                            st.success("作成しました！「ねらい」も文章に整えました。")
                             st.rerun()
                         else:
                             st.error("データの取得に失敗しました。もう一度ボタンを押してみてください。")
@@ -944,6 +951,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
