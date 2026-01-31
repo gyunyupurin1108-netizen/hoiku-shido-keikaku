@@ -809,55 +809,104 @@ elif mode == "月間指導計画":
 # ==========================================
 # モードC：週案（修正版）
 # ==========================================
+# ==========================================
+# モードC：週案（AI一括生成・改）
+# ==========================================
 elif mode == "週案":
     st.header(f"📅 {age} 週案")
     start_date = st.date_input("週の開始日")
 
-    # ▼ AIアシスタント（週案用）
-    with st.expander("🤖 AIアシスタント（週のねらいを作成）", expanded=True):
-        c_wk1, c_wk2 = st.columns([3, 1])
-        with c_wk1:
-            wk_keywords = st.text_input("今週のキーワード", placeholder="例：散歩 秋の自然 運動会練習 トイレトレーニング")
-        with c_wk2:
-            if st.button("✨ 週案作成"):
-                if wk_keywords:
-                    with st.spinner("AIが思考中..."):
-                        # doc_type="週案" を指定
-                        gen_wk_text = ask_gemini_aim(age, wk_keywords, doc_type="週案")
-                        st.session_state['weekly_aim_input'] = gen_wk_text
-                        st.success("作成しました！")
-                else:
-                    st.error("キーワードを入れてください")
-
-    if st.button("月案からねらい引用"):
-        w_aim = st.session_state['monthly_data'].get("ねらい_週1", "")
-        if w_aim:
-            st.session_state['weekly_aim_input'] = w_aim
-            st.rerun()
-
-    user_values = {}
-    # AIの結果がここに入る
-    user_values["weekly_aim"] = st.text_area("週のねらい", key="weekly_aim_input", height=80)
-    
+    # セッションステートの初期化（エラー防止）
     days = ["月", "火", "水", "木", "金", "土"]
+    for d in days:
+        for k in ["activity", "care", "tool"]:
+            key_name = f"{k}_{d}"
+            if key_name not in st.session_state:
+                st.session_state[key_name] = ""
+
+    # ▼ AI設定エリア
+    with st.container(border=True):
+        st.subheader("🤖 AI週案クリエイター")
+        st.info("「今週のねらい」を入力してボタンを押すと、月〜土の計画を一括で提案します。")
+        
+        # ねらい入力
+        weekly_aim = st.text_area("今週のねらい（キーワードでもOK）", 
+                                  key="weekly_aim_input", 
+                                  height=80,
+                                  placeholder="例：秋の自然に触れながら、戸外で体を動かして遊ぶ。")
+
+        # 生成ボタン
+        if st.button("✨ このねらいで1週間分を作成する"):
+            if not weekly_aim:
+                st.error("先に「ねらい」を入力してください。")
+            else:
+                with st.spinner("AIが6日分のカリキュラムを考案中...（約10〜20秒かかります）"):
+                    try:
+                        # プロンプト（JSON形式で出力させる）
+                        prompt = f"""
+                        あなたはベテラン保育士です。以下の条件で週案を作成し、必ずJSON形式のみを返してください。
+                        
+                        【条件】
+                        ・対象年齢: {age}
+                        ・今週のねらい: {weekly_aim}
+                        ・月曜日から土曜日までの6日分
+                        ・項目: 「活動内容(activity)」「配慮・援助(care)」「環境構成・準備(tool)」
+                        
+                        【出力フォーマット（JSON）】
+                        {{
+                            "月": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "火": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "水": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "木": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "金": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "土": {{"activity": "...", "care": "...", "tool": "..."}}
+                        }}
+                        ※Markdown記法（```json等）は使わず、生のJSONテキストのみを返してください。
+                        """
+                        
+                        # AI生成実行
+                        model = genai.GenerativeModel('models/gemini-2.5-flash')
+                        response = model.generate_content(prompt)
+                        
+                        # JSON解析と反映
+                        clean_text = response.text.strip().replace("```json", "").replace("```", "")
+                        schedule_data = json.loads(clean_text)
+                        
+                        # セッションステートに書き込む
+                        for day_key, data_val in schedule_data.items():
+                            if day_key in days:
+                                st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
+                                st.session_state[f"care_{day_key}"] = data_val.get("care", "")
+                                st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
+                        
+                        st.success("作成しました！下の欄を確認・修正してください。")
+                        st.rerun() # 画面更新
+                        
+                    except Exception as e:
+                        st.error(f"作成に失敗しました: {e}")
+
+    # ▼ 入力欄（AIが埋めた内容を修正できる）
+    st.markdown("---")
+    user_values = {}
+    user_values["weekly_aim"] = weekly_aim # Excel用に保存
+
     cols = st.columns(3)
-    
-    # 週案の活動内容などもプルダウンにしたい場合、TEIKEI_DATAに
-    # "活動_月", "活動_火"... のようなデータが必要になります。
-    # 現状はデータがないため、テキストエリアのままにしています。
     for i, day in enumerate(days):
         with cols[i%3]:
             st.subheader(f"{day}曜日")
-            user_values[f"activity_{day}"] = st.text_area("活動", key=f"act_{day}", height=80)
-            user_values[f"care_{day}"] = st.text_area("配慮", key=f"care_{day}", height=60)
-            user_values[f"tool_{day}"] = st.text_area("準備", key=f"tool_{day}", height=40)
+            # keyを固定することで、AIが更新したsession_stateの内容がここに表示される
+            user_values[f"activity_{day}"] = st.text_area("活動", key=f"activity_{day}", height=100)
+            user_values[f"care_{day}"] = st.text_area("配慮・援助", key=f"care_{day}", height=120)
+            user_values[f"tool_{day}"] = st.text_area("準備", key=f"tool_{day}", height=60)
 
+    # ▼ プレビューとExcel出力
+    st.markdown("---")
     if st.button("🚀 Excel作成"):
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
+        
+        file_name = f"週案_{age}.xlsx" if 'age' in locals() else "週案_作成データ.xlsx"
         st.download_button("📥 ダウンロード", data, file_name)
-
-
 
 
         # ▼▼▼ プレビュー機能 ▼▼▼
@@ -888,6 +937,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
