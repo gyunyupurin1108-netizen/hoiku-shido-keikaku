@@ -5,6 +5,7 @@ from io import BytesIO
 import pandas as pd
 import datetime
 import json
+import re
 from streamlit_gsheets import GSheetsConnection
 import google.generativeai as genai
 
@@ -806,17 +807,15 @@ elif mode == "月間指導計画":
                             st.text(f"【{label}】: {val}")
     # ▲▲▲ プレビューここまで ▲▲▲
 
+
 # ==========================================
-# モードC：週案（修正版）
-# ==========================================
-# ==========================================
-# モードC：週案（AI一括生成・改）
+# モードC：週案（エラー対策強化版）
 # ==========================================
 elif mode == "週案":
     st.header(f"📅 {age} 週案")
     start_date = st.date_input("週の開始日")
 
-    # セッションステートの初期化（エラー防止）
+    # セッションステートの初期化
     days = ["月", "火", "水", "木", "金", "土"]
     for d in days:
         for k in ["activity", "care", "tool"]:
@@ -829,72 +828,75 @@ elif mode == "週案":
         st.subheader("🤖 AI週案クリエイター")
         st.info("「今週のねらい」を入力してボタンを押すと、月〜土の計画を一括で提案します。")
         
-        # ねらい入力
         weekly_aim = st.text_area("今週のねらい（キーワードでもOK）", 
                                   key="weekly_aim_input", 
                                   height=80,
                                   placeholder="例：秋の自然に触れながら、戸外で体を動かして遊ぶ。")
 
-        # 生成ボタン
         if st.button("✨ このねらいで1週間分を作成する"):
             if not weekly_aim:
                 st.error("先に「ねらい」を入力してください。")
             else:
-                with st.spinner("AIが6日分のカリキュラムを考案中...（約10〜20秒かかります）"):
+                with st.spinner("AIが6日分のカリキュラムを考案中..."):
                     try:
-                        # プロンプト（JSON形式で出力させる）
+                        # プロンプト（AIへの命令文）
                         prompt = f"""
-                        あなたはベテラン保育士です。以下の条件で週案を作成し、必ずJSON形式のみを返してください。
+                        あなたはベテラン保育士です。以下の条件で週案を作成し、JSON形式のみを出力してください。
+                        余計な挨拶やMarkdown記号（```json 等）は一切不要です。
                         
                         【条件】
                         ・対象年齢: {age}
                         ・今週のねらい: {weekly_aim}
-                        ・月曜日から土曜日までの6日分
-                        ・項目: 「活動内容(activity)」「配慮・援助(care)」「環境構成・準備(tool)」
+                        ・月〜土の6日分
+                        ・キーは必ず "月", "火", "水", "木", "金", "土" にする
                         
-                        【出力フォーマット（JSON）】
+                        【出力データの例（この形式を守ること）】
                         {{
-                            "月": {{"activity": "...", "care": "...", "tool": "..."}},
-                            "火": {{"activity": "...", "care": "...", "tool": "..."}},
-                            "水": {{"activity": "...", "care": "...", "tool": "..."}},
-                            "木": {{"activity": "...", "care": "...", "tool": "..."}},
-                            "金": {{"activity": "...", "care": "...", "tool": "..."}},
-                            "土": {{"activity": "...", "care": "...", "tool": "..."}}
+                            "月": {{"activity": "活動内容...", "care": "配慮...", "tool": "準備..."}},
+                            "火": {{"activity": "...", "care": "...", "tool": "..."}}
                         }}
-                        ※Markdown記法（```json等）は使わず、生のJSONテキストのみを返してください。
                         """
                         
                         # AI生成実行
                         model = genai.GenerativeModel('models/gemini-2.5-flash')
                         response = model.generate_content(prompt)
                         
-                        # JSON解析と反映
-                        clean_text = response.text.strip().replace("```json", "").replace("```", "")
-                        schedule_data = json.loads(clean_text)
+                        # ▼▼▼ 修正ポイント：ここを強力にしました ▼▼▼
+                        # AIの回答から { で始まり } で終わる部分だけを無理やり抜き出す
+                        text_content = response.text
+                        match = re.search(r'\{.*\}', text_content, re.DOTALL)
                         
-                        # セッションステートに書き込む
-                        for day_key, data_val in schedule_data.items():
-                            if day_key in days:
-                                st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
-                                st.session_state[f"care_{day_key}"] = data_val.get("care", "")
-                                st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
-                        
-                        st.success("作成しました！下の欄を確認・修正してください。")
-                        st.rerun() # 画面更新
-                        
+                        if match:
+                            json_str = match.group(0)
+                            schedule_data = json.loads(json_str) # 変換
+                            
+                            # データの反映
+                            for day_key, data_val in schedule_data.items():
+                                if day_key in days:
+                                    st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
+                                    st.session_state[f"care_{day_key}"] = data_val.get("care", "")
+                                    st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
+                            
+                            st.success("作成しました！下の欄を確認・修正してください。")
+                            st.rerun()
+                        else:
+                            st.error("データの取得に失敗しました。もう一度ボタンを押してみてください。")
+                            
                     except Exception as e:
-                        st.error(f"作成に失敗しました: {e}")
+                        # どんなエラーが出たか画面に表示する（デバッグ用）
+                        st.error(f"エラーが発生しました: {e}")
+                        st.text("▼AIからの返答（参考）")
+                        st.code(response.text) # 原因究明のためにAIの返事を表示
 
-    # ▼ 入力欄（AIが埋めた内容を修正できる）
+    # ▼ 入力欄
     st.markdown("---")
     user_values = {}
-    user_values["weekly_aim"] = weekly_aim # Excel用に保存
+    user_values["weekly_aim"] = weekly_aim 
 
     cols = st.columns(3)
     for i, day in enumerate(days):
         with cols[i%3]:
             st.subheader(f"{day}曜日")
-            # keyを固定することで、AIが更新したsession_stateの内容がここに表示される
             user_values[f"activity_{day}"] = st.text_area("活動", key=f"activity_{day}", height=100)
             user_values[f"care_{day}"] = st.text_area("配慮・援助", key=f"care_{day}", height=120)
             user_values[f"tool_{day}"] = st.text_area("準備", key=f"tool_{day}", height=60)
@@ -905,6 +907,7 @@ elif mode == "週案":
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config, orient)
         
+        # インデント修正済みのダウンロードボタン
         file_name = f"週案_{age}.xlsx" if 'age' in locals() else "週案_作成データ.xlsx"
         st.download_button("📥 ダウンロード", data, file_name)
 
@@ -937,6 +940,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
