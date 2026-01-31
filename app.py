@@ -875,7 +875,6 @@ elif mode == "週案":
                         # JSON抽出（前回追加した部分）
                         text_content = response.text
                         match = re.search(r'\{.*\}', text_content, re.DOTALL)
-                        
                         if match:
                             json_str = match.group(0)
                             schedule_data = json.loads(json_str) 
@@ -959,6 +958,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
