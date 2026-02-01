@@ -931,12 +931,16 @@ elif mode == "週案":
             else:
                 with st.spinner("AIが文章を構成中..."):
                     try:
-                        prompt = f"""
+                       prompt = f"""
                         あなたはベテラン保育士です。以下の条件で週案を作成し、JSON形式のみを出力してください。
                         
                         【条件】
                         ・対象年齢: {age}
                         ・キーワード: {keyword_input}
+                        
+                        【重要：文体の統一】
+                        ・すべての文章（ねらい、活動、配慮、準備）の語尾は、「〜する」「〜である」といった「常体（普通体）」で統一すること。
+                        ・「〜ます」「〜です」といった敬語表現は一切使用しないこと（厳禁）。
                         
                         【指示】
                         1. 「weekly_aim_sentence」には、キーワードを元にした1〜2文の適切な「ねらい」を生成すること。
@@ -948,7 +952,10 @@ elif mode == "週案":
                             "weekly_aim_sentence": "...",
                             "月": {{"activity": "...", "care": "...", "tool": "..."}},
                             "火": {{"activity": "...", "care": "...", "tool": "..."}},
-                            ...（土まで）
+                            "水": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "木": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "金": {{"activity": "...", "care": "...", "tool": "..."}},
+                            "土": {{"activity": "...", "care": "...", "tool": "..."}}
                         }}
                         """
                         model = genai.GenerativeModel('models/gemini-2.5-flash')
@@ -1050,6 +1057,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
