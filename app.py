@@ -808,8 +808,9 @@ elif mode == "月間指導計画":
     # ▲▲▲ プレビューここまで ▲▲▲
 
 
+
 # ==========================================
-# モードC：週案（エラー対策強化版）
+# モードC：週案（ねらい自動書換 確定版）
 # ==========================================
 elif mode == "週案":
     st.header(f"📅 {age} 週案")
@@ -826,40 +827,42 @@ elif mode == "週案":
     # ▼ AI設定エリア
     with st.container(border=True):
         st.subheader("🤖 AI週案クリエイター")
-        st.info("「今週のねらい」を入力してボタンを押すと、月〜土の計画を一括で提案します。")
+        st.info("「キーワード」を入力して生成すると、AIが「ねらい」を文章化し、1週間分の計画を作成します。")
         
-       # AIが生成した文章がsession_stateにあればそれを優先し、なければ空文字にする
-        # ただし、一度も生成していない時はユーザーが入力したキーワードを保持できるようにする
-        initial_aim = st.session_state.get("ai_generated_aim", "")
+        # ★ポイント1：表示する値をsession_stateから直接持ってくる
+        if "weekly_aim_text" not in st.session_state:
+            st.session_state["weekly_aim_text"] = ""
 
         weekly_aim = st.text_area("今週のねらい（キーワードでもOK）", 
-                                  value=initial_aim, # AIの文章をここに流し込む
+                                  value=st.session_state["weekly_aim_text"], 
                                   key="weekly_aim_input_widget", 
                                   height=80,
-                                  placeholder="例：秋の自然に触れながら、戸外で体を動かして遊ぶ。")
+                                  placeholder="例：冬 健康")
 
         if st.button("✨ このねらいで1週間分を作成する"):
-            if not weekly_aim:
+            # ここでは入力欄の最新の値を直接取得する（widgetのkeyから取得）
+            input_val = st.session_state["weekly_aim_input_widget"]
+            
+            if not input_val:
                 st.error("先に「ねらい」を入力してください。")
             else:
                 with st.spinner("AIが6日分のカリキュラムを考案中..."):
                     try:
-                       # プロンプト（AIへの命令文）を修正
                         prompt = f"""
                         あなたはベテラン保育士です。以下の条件で週案を作成し、JSON形式のみを出力してください。
                         
                         【条件】
                         ・対象年齢: {age}
-                        ・今週のねらい（キーワード）: {weekly_aim}
+                        ・今週のキーワード: {input_val}
                         ・月〜土の6日分
                         
                         【必須指示】
-                        1. 「ねらい（weekly_aim_sentence）」は、入力されたキーワードを元に、保育指針に基づいた自然な「文章」に書き換えること（「〜する」調）。
-                        2. 各活動内容はキーワードをそのまま使わず、具体的な活動として文章化すること。
+                        1. 「weekly_aim_sentence」は、キーワードを元に保育指針に基づいた自然な「文章」にすること。
+                        2. 文中に【冬】のようなタグを残さないこと。
                         
                         【出力フォーマット（厳守）】
                         {{
-                            "weekly_aim_sentence": "（ここにキーワードを文章化したものを入れる）",
+                            "weekly_aim_sentence": "（文章化したねらい）",
                             "月": {{"activity": "...", "care": "...", "tool": "..."}},
                             "火": {{"activity": "...", "care": "...", "tool": "..."}},
                             "水": {{"activity": "...", "care": "...", "tool": "..."}},
@@ -869,48 +872,38 @@ elif mode == "週案":
                         }}
                         """
                         
-                        # AI生成実行
                         model = genai.GenerativeModel('models/gemini-2.5-flash')
                         response = model.generate_content(prompt)
                         
-                        # JSON抽出（前回追加した部分）
                         text_content = response.text
                         match = re.search(r'\{.*\}', text_content, re.DOTALL)
+                        
                         if match:
-                            json_str = match.group(0)
-                            schedule_data = json.loads(json_str) 
+                            schedule_data = json.loads(match.group(0))
                             
-                            # ★ここで「AIが作ったねらいの文章」を画面の入力欄に上書きする！
-                        if match:
-                            json_str = match.group(0)
-                            schedule_data = json.loads(json_str) 
-                            
-                            # AIが作った「文章になったねらい」を保存
+                            # ★ポイント2：生成された文章をsession_stateに保存
                             if "weekly_aim_sentence" in schedule_data:
-                                # ★重要：入力欄のキー（weekly_aim_input_widget）とは別の名前に保存
-                                st.session_state["ai_generated_aim"] = schedule_data["weekly_aim_sentence"]
+                                st.session_state["weekly_aim_text"] = schedule_data["weekly_aim_sentence"]
 
-                            # 日々のデータの反映
-                            for day_key, data_val in schedule_data.items():
-                                if day_key in days:
+                            for day_key in days:
+                                if day_key in schedule_data:
+                                    data_val = schedule_data[day_key]
                                     st.session_state[f"activity_{day_key}"] = data_val.get("activity", "")
                                     st.session_state[f"care_{day_key}"] = data_val.get("care", "")
                                     st.session_state[f"tool_{day_key}"] = data_val.get("tool", "")
                             
-                            st.success("作成しました！")
-                            st.rerun() # ここで画面を更新
+                            st.success("作成しました！ねらいを文章に書き換えました。")
+                            st.rerun() 
                         else:
-                            st.error("データの取得に失敗しました。もう一度ボタンを押してみてください。")
+                            st.error("データの抽出に失敗しました。")
                             
                     except Exception as e:
-                        # どんなエラーが出たか画面に表示する（デバッグ用）
                         st.error(f"エラーが発生しました: {e}")
-                        st.text("▼AIからの返答（参考）")
-                        st.code(response.text) # 原因究明のためにAIの返事を表示
 
-    # ▼ 入力欄
+    # ▼ 入力欄エリア
     st.markdown("---")
     user_values = {}
+    # 現在の画面上の「ねらい」をExcel用に確保
     user_values["weekly_aim"] = weekly_aim 
 
     cols = st.columns(3)
@@ -921,21 +914,18 @@ elif mode == "週案":
             user_values[f"care_{day}"] = st.text_area("配慮・援助", key=f"care_{day}", height=120)
             user_values[f"tool_{day}"] = st.text_area("準備", key=f"tool_{day}", height=60)
 
-    # ▼ プレビューとExcel出力
+    # ▼ Excel出力
     st.markdown("---")
     if st.button("🚀 Excel作成"):
-        # weekly_aim変数には st.text_area の現在の（書き換え後の）内容が入っています
-        user_values["weekly_aim"] = weekly_aim 
-        
         config = {'week_range': start_date.strftime('%Y/%m/%d〜'), 'values': user_values}
         data = create_weekly_excel(age, config)
-        # ...以下ダウンロードボタン
         
-        # インデント修正済みのダウンロードボタン
-        file_name = f"週案_{age}.xlsx" if 'age' in locals() else "週案_作成データ.xlsx"
+        file_name = f"週案_{age}.xlsx"
         st.download_button("📥 ダウンロード", data, file_name)
-
-
+     
+                       
+                           
+       
         # ▼▼▼ プレビュー機能 ▼▼▼
     st.markdown("---")
     st.subheader("👀 仕上がりプレビュー")
@@ -964,6 +954,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
