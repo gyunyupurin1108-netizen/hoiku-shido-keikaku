@@ -931,7 +931,7 @@ elif mode == "週案":
             else:
                 with st.spinner("AIが文章を構成中..."):
                     try:
-                       prompt = f"""
+                        prompt = f"""
                         あなたはベテラン保育士です。以下の条件で週案を作成し、JSON形式のみを出力してください。
                         
                         【条件】
@@ -1057,6 +1057,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
