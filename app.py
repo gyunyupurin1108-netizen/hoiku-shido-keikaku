@@ -494,30 +494,117 @@ def create_monthly_excel(age, target_month, config, num_weeks, orientation):
     wb.save(output)
     return output.getvalue()
 
-def create_weekly_excel(age, config, orientation):
-    wb = openpyxl.Workbook()
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
+from openpyxl.utils import get_column_letter
+
+def create_weekly_excel(age, config, orient="P"):
+    """
+    添付の週案フォーマット（A4縦）に合わせてExcelを作成する関数
+    """
+    wb = Workbook()
     ws = wb.active
     ws.title = "週案"
-    thin = Side(style='thin')
-    border = Border(top=thin, bottom=thin, left=thin, right=thin)
-    header_fill = PatternFill(start_color="F2F2F2", fill_type="solid")
-    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    top_left_align = Alignment(horizontal='left', vertical='top', wrap_text=True)
 
-    ws.merge_cells("A1:D1")
-    ws['A1'] = f"【週案】 {config['week_range']} ({age})"
-    ws['A1'].font = Font(bold=True, size=14)
-    
-    ws['A2'] = "週のねらい"
-    ws['B2'] = config['values'].get("weekly_aim", "")
-    
-    days = ["月", "火", "水", "木", "金", "土"]
-    row_idx = 4
-    for day in days:
-        ws.cell(row=row_idx, column=1, value=day)
-        ws.cell(row=row_idx, column=2, value=config['values'].get(f"activity_{day}", ""))
-        row_idx += 1
+    # ▼ 1. 用紙設定（A4縦・1ページに収める）
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT  # 縦向き
+    ws.page_setup.fitToWidth = 1  # 横幅を1ページに収める
+    ws.page_setup.fitToHeight = 1 # 縦幅も1ページに収める
 
+    # ▼ 2. スタイル定義
+    font_std = Font(name="Meiryo UI", size=10)
+    font_bold = Font(name="Meiryo UI", size=11, bold=True)
+    font_title = Font(name="Meiryo UI", size=14, bold=True)
+    
+    border_thin = Side(border_style="thin", color="000000")
+    border_all = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
+    
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_top_left = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+    # ▼ 3. 列幅の設定（A4縦に収まるように調整）
+    # A:日付(小), B:活動(大), C:配慮(中), D:準備(小)
+    ws.column_dimensions['A'].width = 6   # 曜日
+    ws.column_dimensions['B'].width = 30  # 活動予定
+    ws.column_dimensions['C'].width = 25  # 援助・配慮
+    ws.column_dimensions['D'].width = 15  # 準備
+
+    # ▼ 4. タイトル周りの作成
+    ws.merge_cells('A1:D1')
+    ws["A1"] = f"【{age}】 週案"
+    ws["A1"].font = font_title
+    ws["A1"].alignment = align_center
+
+    # 期間の表示
+    week_str = config.get('week_range', '')
+    ws.merge_cells('A2:D2')
+    ws["A2"] = f"期間： {week_str}"
+    ws["A2"].font = font_std
+    ws["A2"].alignment = Alignment(horizontal="right", vertical="center")
+
+    # ▼ 5. 週のねらい（結合セル）
+    ws.merge_cells('A3:D3')
+    ws["A3"] = "■ 今週のねらい"
+    ws["A3"].font = font_bold
+    ws["A3"].fill = PatternFill(patternType='solid', fgColor='E2EFDA') # 薄い緑
+    ws["A3"].border = border_all
+
+    ws.merge_cells('A4:D5') # 2行分確保
+    ws["A4"] = config['values'].get('weekly_aim', '')
+    ws["A4"].alignment = align_top_left
+    ws["A4"].border = border_all
+    ws["A4"].font = font_std
+
+    # ▼ 6. 表ヘッダーの作成 (6行目)
+    headers = ["曜日", "活動予定", "援助・配慮", "準備"]
+    for col_idx, text in enumerate(headers, 1):
+        cell = ws.cell(row=6, column=col_idx, value=text)
+        cell.font = font_bold
+        cell.alignment = align_center
+        cell.border = border_all
+        cell.fill = PatternFill(patternType='solid', fgColor='D9E1F2') # 薄い青
+
+    # ▼ 7. 日ごとのデータ書き込み (7行目からスタート)
+    days_map = ["月", "火", "水", "木", "金", "土"]
+    current_row = 7
+    user_values = config['values']
+
+    for day in days_map:
+        # 高さの確保（1日につき4行分くらいの高さを設定して見やすくする）
+        ws.row_dimensions[current_row].height = 65 
+
+        # 1列目：曜日
+        cell_day = ws.cell(row=current_row, column=1, value=day)
+        cell_day.alignment = align_center
+        cell_day.font = font_bold
+        cell_day.border = border_all
+
+        # 2列目：活動
+        act_val = user_values.get(f"activity_{day}", "")
+        cell_act = ws.cell(row=current_row, column=2, value=act_val)
+        cell_act.alignment = align_top_left
+        cell_act.border = border_all
+        cell_act.font = font_std
+
+        # 3列目：配慮
+        care_val = user_values.get(f"care_{day}", "")
+        cell_care = ws.cell(row=current_row, column=3, value=care_val)
+        cell_care.alignment = align_top_left
+        cell_care.border = border_all
+        cell_care.font = font_std
+
+        # 4列目：準備
+        tool_val = user_values.get(f"tool_{day}", "")
+        cell_tool = ws.cell(row=current_row, column=4, value=tool_val)
+        cell_tool.alignment = align_top_left
+        cell_tool.border = border_all
+        cell_tool.font = font_std
+
+        current_row += 1
+
+    # バイナリデータとして返す
+    from io import BytesIO
     output = BytesIO()
     wb.save(output)
     return output.getvalue()
@@ -954,6 +1041,7 @@ elif mode == "週案":
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
     
+
 
 
 
