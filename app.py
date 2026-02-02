@@ -505,7 +505,110 @@ def create_weekly_excel(age, config, orient="P"):
     wb = Workbook()
     ws = wb.active
     ws.title = "週案"
+def create_monthly_excel(age, config):
+    """
+    月案（5週対応・A4縦）のExcelを作成する関数
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "月案"
 
+    # ▼ 1. 用紙設定（A4縦・1ページに収める）
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 1
+
+    # ▼ 2. スタイル定義
+    font_std = Font(name="Meiryo UI", size=10)
+    font_bold = Font(name="Meiryo UI", size=11, bold=True)
+    font_title = Font(name="Meiryo UI", size=14, bold=True)
+    
+    border_thin = Side(border_style="thin", color="000000")
+    border_all = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
+    
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_top_left = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+    # ▼ 3. 列幅の設定
+    # A:週(小), B:ねらい(中), C:活動(大), D:環境・配慮(中)
+    ws.column_dimensions['A'].width = 6   # 第○週
+    ws.column_dimensions['B'].width = 20  # 週のねらい
+    ws.column_dimensions['C'].width = 30  # 活動内容
+    ws.column_dimensions['D'].width = 25  # 環境・配慮
+
+    # ▼ 4. タイトルと月のねらい
+    month_str = config.get('month', '○月')
+    
+    ws.merge_cells('A1:D1')
+    ws["A1"] = f"【{age}】 {month_str} 月案"
+    ws["A1"].font = font_title
+    ws["A1"].alignment = align_center
+
+    # 月のねらい（大きく確保）
+    ws.merge_cells('A2:D2')
+    ws["A2"] = "■ 今月のねらい"
+    ws["A2"].font = font_bold
+    ws["A2"].fill = PatternFill(patternType='solid', fgColor='E2EFDA') # 薄緑
+    ws["A2"].border = border_all
+
+    ws.merge_cells('A3:D6') # 4行分確保
+    ws["A3"] = config.get('monthly_aim', '')
+    ws["A3"].alignment = align_top_left
+    ws["A3"].border = border_all
+    ws["A3"].font = font_std
+
+    # ▼ 5. ヘッダー作成 (7行目)
+    headers = ["週", "週のねらい", "活動内容", "環境・配慮"]
+    for col_idx, text in enumerate(headers, 1):
+        cell = ws.cell(row=7, column=col_idx, value=text)
+        cell.font = font_bold
+        cell.alignment = align_center
+        cell.border = border_all
+        cell.fill = PatternFill(patternType='solid', fgColor='D9E1F2') # 薄青
+
+    # ▼ 6. 5週分のループ書き込み (8行目〜)
+    current_row = 8
+    weeks = [1, 2, 3, 4, 5]
+    user_values = config.get('values', {})
+
+    for w in weeks:
+        # 行の高さを確保（1週あたり均等に広げる）
+        ws.row_dimensions[current_row].height = 75 
+
+        # 1列目：第○週
+        cell_w = ws.cell(row=current_row, column=1, value=f"第{w}週")
+        cell_w.alignment = align_center
+        cell_w.font = font_bold
+        cell_w.border = border_all
+
+        # 2列目：週のねらい
+        aim_val = user_values.get(f"week_aim_{w}", "")
+        cell_aim = ws.cell(row=current_row, column=2, value=aim_val)
+        cell_aim.alignment = align_top_left
+        cell_aim.border = border_all
+        cell_aim.font = font_std
+
+        # 3列目：活動内容
+        act_val = user_values.get(f"week_activity_{w}", "")
+        cell_act = ws.cell(row=current_row, column=3, value=act_val)
+        cell_act.alignment = align_top_left
+        cell_act.border = border_all
+        cell_act.font = font_std
+
+        # 4列目：環境・配慮
+        care_val = user_values.get(f"week_care_{w}", "")
+        cell_care = ws.cell(row=current_row, column=4, value=care_val)
+        cell_care.alignment = align_top_left
+        cell_care.border = border_all
+        cell_care.font = font_std
+
+        current_row += 1
+
+    from io import BytesIO
+    output = BytesIO()
+    wb.save(output)
+    return output.getvalue()
     # ▼ 1. 用紙設定（A4縦・1ページに収める）
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT  # 縦向き
@@ -1108,6 +1211,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
