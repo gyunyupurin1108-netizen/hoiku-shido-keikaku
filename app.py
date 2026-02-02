@@ -459,40 +459,7 @@ def create_annual_excel(age, config, orientation):
     wb.save(output)
     return output.getvalue()
 
-def create_monthly_excel(age, target_month, config, num_weeks, orientation):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "指導計画表"
-    thin = Side(style='thin')
-    border = Border(top=thin, bottom=thin, left=thin, right=thin)
-    header_fill = PatternFill(start_color="F2F2F2", fill_type="solid")
-    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    top_left_align = Alignment(horizontal='left', vertical='top', wrap_text=True)
-    
-    total_cols = 1 + num_weeks
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
-    ws['A1'] = f"【指導計画】 {target_month} ({age})"
-    ws['A1'].font = Font(bold=True, size=14)
-    
-    row = 3
-    # 簡易実装：主要データのみ出力
-    ws.cell(row=row, column=1, value="項目").fill = header_fill
-    for i in range(1, num_weeks+1):
-        ws.cell(row=row, column=i+1, value=f"第{i}週").fill = header_fill
-    row += 1
-    
-    mid_labels = [config[f'l_mid{r}'] for r in range(6, 16)]
-    for label in mid_labels:
-        ws.cell(row=row, column=1, value=label).fill = header_fill
-        for w_idx in range(1, num_weeks + 1):
-            key = f"{label}_週{w_idx}"
-            ws.cell(row=row, column=w_idx+1, value=config['values'].get(key, "")).alignment = top_left_align
-            ws.cell(row=row, column=w_idx+1).border = border
-        row += 1
-        
-    output = BytesIO()
-    wb.save(output)
-    return output.getvalue()
+
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
@@ -1211,6 +1178,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
