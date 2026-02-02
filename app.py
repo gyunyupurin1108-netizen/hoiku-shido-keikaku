@@ -797,80 +797,131 @@ if mode == "年間指導計画":
     # ▲▲▲ プレビューここまで ▲▲▲
 
 # ==========================================
-# モードB：月間指導計画
+# モードB：月案（5週対応版）
 # ==========================================
-elif mode == "月間指導計画":
-    st.header(f"📝 {age} 月間指導計画")
-    # ▼▼▼ 追加コード：AIアシスタントエリア ▼▼▼
-    with st.expander("🤖 AIアシスタント（キーワードから『ねらい』を作成）", expanded=True):
-        c_ai1, c_ai2, c_ai3 = st.columns([2, 1, 1])
-        with c_ai1:
-            ai_keywords = st.text_input("キーワードを入力", placeholder="例：雪遊び 手袋 貸し借り 感染症予防")
-        with c_ai2:
-            target_week = st.selectbox("反映先", ["第1週", "第2週", "第3週", "第4週"])
-        with c_ai3:
-            st.write("") # レイアウト調整用
-            if st.button("✨ AI作成"):
-                if not ai_keywords:
-                    st.error("キーワードを入れてください")
-                else:
-                    with st.spinner("AIが執筆中..."):
-                        generated_text = ask_gemini_aim(age, ai_keywords)
-                        
-                        # 生成されたテキストを、対象の週の「ねらい」入力欄にセットする
-                        # ※前回のコードで、ねらいのキーは "w{週番号}_6" となっていました
-                        week_num = target_week.replace("第", "").replace("週", "") # "1", "2"...
-                        target_key = f"w{week_num}_6"
-                        
-                        st.session_state[target_key] = generated_text
-                        st.success(f"{target_week}の『ねらい』に入力しました！")
-    # 日付などは保存対象外（毎回選択）とする運用がシンプル
-    month_date = st.date_input("対象月", value=datetime.date.today())
-    month_str = month_date.strftime("%Y年%m月")
+elif "月案" in mode: # "月案（準備中）"でも反応するように
+    st.header(f"🌙 {age} 月案作成")
     
-    st.info("💡 年間計画のデータがあれば、ここから引用できます")
-    if st.button("年間計画から引用"):
-         # (連動ロジックは前のまま使用可能)
-         pass
+    # 月の選択
+    selected_month = st.selectbox("対象月", [f"{i}月" for i in range(1, 13)], index=3) # デフォルト4月
 
-    num_weeks = 4
-    l_mid = {r: st.text_input(f"項目{r}", val, key=f"lm_{r}") for r, val in zip(range(6, 16), ["ねらい", "養護", "教育", "環境", "支援", "行事", "連携", "食育", "健康", "その他"])}
+    # セッションステート初期化
+    if "monthly_aim_area" not in st.session_state:
+        st.session_state["monthly_aim_area"] = ""
     
-    tabs = st.tabs([f"第{i}週" for i in range(1, 5)] + ["反省"])
+    # 5週分のデータ枠を確保
+    weeks = [1, 2, 3, 4, 5]
+    for w in weeks:
+        for k in ["week_aim", "week_activity", "week_care"]:
+            key_name = f"{k}_{w}"
+            if key_name not in st.session_state:
+                st.session_state[key_name] = ""
+
+    # ▼ AI設定エリア
+    with st.container(border=True):
+        st.subheader("🤖 AI月案クリエイター")
+        keyword_input = st.text_input("今月のテーマ・キーワード", 
+                                      placeholder="例：梅雨 室内遊び 七夕飾り 衛生管理",
+                                      key="month_keyword")
+
+        if st.button("✨ このテーマで月案（5週分）を作成"):
+            if not keyword_input:
+                st.error("キーワードを入力してください。")
+            else:
+                with st.spinner("AIが5週分の構成を考案中..."):
+                    try:
+                        # プロンプト（5週分作るように指示）
+                        prompt = f"""
+                        あなたはベテラン保育士です。以下の条件で月案を作成し、JSON形式のみを出力してください。
+                        
+                        【条件】
+                        ・対象年齢: {age}
+                        ・月: {selected_month}
+                        ・キーワード: {keyword_input}
+                        ・第1週〜第5週まで作成すること
+                        
+                        【指示】
+                        1. 「monthly_aim_sentence」：月のねらい（常体・〜する）
+                        2. 各週の「ねらい(aim)」「活動(activity)」「環境・配慮(care)」を具体的に。
+                        3. 語尾は「〜する」「〜である」の常体で統一。
+                        
+                        【出力フォーマット】
+                        {{
+                            "monthly_aim_sentence": "...",
+                            "1": {{"aim": "...", "activity": "...", "care": "..."}},
+                            "2": {{"aim": "...", "activity": "...", "care": "..."}},
+                            "3": {{"aim": "...", "activity": "...", "care": "..."}},
+                            "4": {{"aim": "...", "activity": "...", "care": "..."}},
+                            "5": {{"aim": "...", "activity": "...", "care": "..."}}
+                        }}
+                        """
+                        
+                        model = genai.GenerativeModel('models/gemini-2.5-flash')
+                        response = model.generate_content(prompt)
+                        
+                        match = re.search(r'\{.*\}', response.text, re.DOTALL)
+                        if match:
+                            data = json.loads(match.group(0))
+                            
+                            # 月のねらい反映
+                            if "monthly_aim_sentence" in data:
+                                st.session_state["monthly_aim_area"] = data["monthly_aim_sentence"]
+                            
+                            # 1〜5週のデータ反映
+                            for w in weeks:
+                                w_str = str(w)
+                                if w_str in data:
+                                    st.session_state[f"week_aim_{w}"] = data[w_str].get("aim", "")
+                                    st.session_state[f"week_activity_{w}"] = data[w_str].get("activity", "")
+                                    st.session_state[f"week_care_{w}"] = data[w_str].get("care", "")
+                            
+                            st.success("作成しました！")
+                            st.rerun()
+                            
+                    except Exception as e:
+                        st.error(f"エラー: {e}")
+
+    # ▼ 編集・確認エリア
+    st.markdown("---")
+    
+    # 月のねらい
+    monthly_aim = st.text_area("■ 今月のねらい", 
+                               key="monthly_aim_area",
+                               height=100)
+    
+    # 5週分の入力欄（タブで切り替えるか、縦に並べるか。縦が見やすい）
+    st.subheader("📅 週ごとの計画")
+    
     user_values = {}
     
-    age_data = TEIKEI_DATA.get(age, {})
-    
-    for i in range(4):
-        with tabs[i]:
-            st.caption(f"第{i+1}週")
-            for r_num, label in l_mid.items():
-                # keyを一意にする: w(週)_(行番号)
-                k = f"w{i+1}_{r_num}"
-                
-               # --- ここから修正 ---
-                # 「ねらい」だけはAIや自由入力のために最初からテキストエリアにする
-                if label == "ねらい":
-                    val = st.text_area(label, key=k, height=100)
-                # それ以外の項目で定型文がある場合はプルダウンにする
-                elif label in age_data:
-                    val = st.selectbox(label, age_data[label] + ["自由入力"], key=k)
-                # 定型文がない項目はテキストエリア
-                else:
-                    val = st.text_area(label, key=k, height=60)
-                # --- ここまで修正 ---
-                user_values[f"{label}_週{i+1}"] = val
-                
-                if label == "ねらい":
-                    st.session_state['monthly_data'][f"ねらい_週{i+1}"] = val
+    for w in weeks:
+        with st.expander(f"第{w}週の計画", expanded=True):
+            cols = st.columns(3)
+            with cols[0]:
+                st.text_area("週のねらい", key=f"week_aim_{w}", height=100)
+            with cols[1]:
+                st.text_area("活動内容", key=f"week_activity_{w}", height=100)
+            with cols[2]:
+                st.text_area("環境・配慮", key=f"week_care_{w}", height=100)
 
-    with tabs[4]:
-        user_values["reflection"] = st.text_area("振り返り", key="mon_ref", height=100)
+    # ▼ Excel出力
+    st.markdown("---")
+    if st.button("🚀 月案Excel作成"):
+        # 画面の値を集める
+        excel_config = {
+            'month': selected_month,
+            'monthly_aim': st.session_state.get("monthly_aim_area", ""),
+            'values': {}
+        }
+        
+        for w in weeks:
+            excel_config['values'][f"week_aim_{w}"] = st.session_state.get(f"week_aim_{w}", "")
+            excel_config['values'][f"week_activity_{w}"] = st.session_state.get(f"week_activity_{w}", "")
+            excel_config['values'][f"week_care_{w}"] = st.session_state.get(f"week_care_{w}", "")
 
-    if st.button("🚀 Excel作成"):
-        config = {**{f'l_mid{r}': val for r, val in l_mid.items()}, 'values': user_values}
-        data = create_monthly_excel(age, month_str, config, num_weeks, orient)
-        st.download_button("📥 ダウンロード", data, f"月案_{month_str}.xlsx")
+        # A4縦関数呼び出し
+        data = create_monthly_excel(age, excel_config)
+        st.download_button("📥 ダウンロード", data, f"月案_{selected_month}.xlsx")
         # ▼▼▼ プレビュー機能 ▼▼▼
     st.markdown("---")
     st.subheader("👀 仕上がりプレビュー")
@@ -1057,6 +1108,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
