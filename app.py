@@ -1002,12 +1002,12 @@ elif "月案" in mode:
           st.markdown(f"### 🌙 {current_month} 指導計画")
         
         # 4週間分を並べて表示
-        for i in range(4):
-            week_num = i + 1
-            with st.expander(f"第 {week_num} 週の内容を確認", expanded=True):
+    for i in range(5):
+        week_num = i + 1
+        with st.expander(f"第 {week_num} 週の内容を確認", expanded=True):
                 # ユーザーが入力したデータを取得して表示
-                w_aim = user_values.get(f"ねらい_週{week_num}", "（未入力）")
-                st.markdown(f"**🎯 ねらい**: {w_aim}")
+        w_aim = user_values.get(f"ねらい_週{week_num}", "（未入力）")
+        st.markdown(f"**🎯 ねらい**: {w_aim}")
                 
                 # その他の項目をリストで表示
                 for r_num, label in l_mid.items():
@@ -1180,6 +1180,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
