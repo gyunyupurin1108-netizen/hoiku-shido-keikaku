@@ -997,7 +997,9 @@ elif "月案" in mode:
     st.subheader("👀 仕上がりプレビュー")
 
     with st.container(border=True):
-        st.markdown(f"### 🌙 {month_str} 指導計画")
+        # selected_month が存在すればそれを使い、なければ「○月」と表示する
+current_month = st.session_state.get("selected_month", "○月")
+st.markdown(f"### 🌙 {current_month} 指導計画")
         
         # 4週間分を並べて表示
         for i in range(4):
@@ -1178,6 +1180,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
