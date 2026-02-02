@@ -996,25 +996,35 @@ elif "月案" in mode:
     st.markdown("---")
     st.subheader("👀 仕上がりプレビュー")
 
+    # ▼▼▼ プレビュー機能（月案5週対応・確定版） ▼▼▼
     with st.container(border=True):
         # selected_month が存在すればそれを使い、なければ「○月」と表示する
-          current_month = st.session_state.get("selected_month", "○月")
-          st.markdown(f"### 🌙 {current_month} 指導計画")
+        current_month = st.session_state.get("selected_month", "○月")
+        st.markdown(f"### 🌙 {current_month} 指導計画")
         
-        # 4週間分を並べて表示
-    for i in range(5):
-        week_num = i + 1
-        with st.expander(f"第 {week_num} 週の内容を確認", expanded=True):
-                # ユーザーが入力したデータを取得して表示
-        w_aim = user_values.get(f"ねらい_週{week_num}", "（未入力）")
-        st.markdown(f"**🎯 ねらい**: {w_aim}")
+        # 月のねらいを表示
+        m_aim = st.session_state.get("monthly_aim_area", "（未入力）")
+        st.info(f"**今月のねらい**: {m_aim}")
+
+        # 5週間分をループで表示
+        for i in range(5):
+            week_num = i + 1
+            with st.expander(f"第 {week_num} 週の内容を確認", expanded=True):
+                # セッションステートからデータを取得
+                w_aim = st.session_state.get(f"week_aim_{week_num}", "（未入力）")
+                w_act = st.session_state.get(f"week_activity_{week_num}", "-")
+                w_care = st.session_state.get(f"week_care_{week_num}", "-")
                 
-                # その他の項目をリストで表示
-                for r_num, label in l_mid.items():
-                    if label != "ねらい": # ねらい以外を表示
-                        val = user_values.get(f"{label}_週{week_num}", "-")
-                        if val:
-                            st.text(f"【{label}】: {val}")
+                st.markdown(f"**🎯 週のねらい**")
+                st.write(w_aim)
+                
+                col_pv1, col_pv2 = st.columns(2)
+                with col_pv1:
+                    st.caption("▼活動内容")
+                    st.write(w_act)
+                with col_pv2:
+                    st.caption("▼環境・配慮")
+                    st.write(w_care)
     # ▲▲▲ プレビューここまで ▲▲▲
 
 
@@ -1180,6 +1190,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
