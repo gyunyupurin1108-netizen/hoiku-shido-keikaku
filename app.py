@@ -474,13 +474,13 @@ def create_weekly_excel(age, config, orient="P"):
     ws.title = "週案"
 def create_monthly_excel(age, config):
     """
-    月案（5週対応・A4縦）のExcelを作成する関数
+    月案（週数可変・A4縦）のExcelを作成する関数
     """
     wb = Workbook()
     ws = wb.active
     ws.title = "月案"
 
-    # ▼ 1. 用紙設定（A4縦・1ページに収める）
+    # ▼ 1. 用紙設定
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.fitToWidth = 1
@@ -497,51 +497,51 @@ def create_monthly_excel(age, config):
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_top_left = Alignment(horizontal="left", vertical="top", wrap_text=True)
 
-    # ▼ 3. 列幅の設定
-    # A:週(小), B:ねらい(中), C:活動(大), D:環境・配慮(中)
-    ws.column_dimensions['A'].width = 6   # 第○週
-    ws.column_dimensions['B'].width = 20  # 週のねらい
-    ws.column_dimensions['C'].width = 30  # 活動内容
-    ws.column_dimensions['D'].width = 25  # 環境・配慮
+    # ▼ 3. 列幅
+    ws.column_dimensions['A'].width = 6
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 30
+    ws.column_dimensions['D'].width = 25
 
     # ▼ 4. タイトルと月のねらい
     month_str = config.get('month', '○月')
-    
     ws.merge_cells('A1:D1')
     ws["A1"] = f"【{age}】 {month_str} 月案"
     ws["A1"].font = font_title
     ws["A1"].alignment = align_center
 
-    # 月のねらい（大きく確保）
     ws.merge_cells('A2:D2')
     ws["A2"] = "■ 今月のねらい"
     ws["A2"].font = font_bold
-    ws["A2"].fill = PatternFill(patternType='solid', fgColor='E2EFDA') # 薄緑
+    ws["A2"].fill = PatternFill(patternType='solid', fgColor='E2EFDA')
     ws["A2"].border = border_all
 
-    ws.merge_cells('A3:D6') # 4行分確保
+    ws.merge_cells('A3:D6')
     ws["A3"] = config.get('monthly_aim', '')
     ws["A3"].alignment = align_top_left
     ws["A3"].border = border_all
     ws["A3"].font = font_std
 
-    # ▼ 5. ヘッダー作成 (7行目)
+    # ▼ 5. ヘッダー
     headers = ["週", "週のねらい", "活動内容", "環境・配慮"]
     for col_idx, text in enumerate(headers, 1):
         cell = ws.cell(row=7, column=col_idx, value=text)
         cell.font = font_bold
         cell.alignment = align_center
         cell.border = border_all
-        cell.fill = PatternFill(patternType='solid', fgColor='D9E1F2') # 薄青
+        cell.fill = PatternFill(patternType='solid', fgColor='D9E1F2')
 
-    # ▼ 6. 5週分のループ書き込み (8行目〜)
+    # ▼ 6. 週数に応じたループ処理（修正箇所）
     current_row = 8
-    weeks = [1, 2, 3, 4, 5]
-    user_values = config.get('values', {})
-
-    for w in weeks:
-        # 行の高さを確保（1週あたり均等に広げる）
-        ws.row_dimensions[current_row].height = 75 
+    
+    # configから「週数」を受け取る（なければデフォルト5）
+    num_weeks = config.get('num_weeks', 5)
+    
+    # 1からnum_weeksまで繰り返す
+    for w in range(1, num_weeks + 1):
+        # 週数によって行の高さを微調整（4週なら広め、5週なら少し狭め）
+        row_h = 90 if num_weeks == 4 else 75
+        ws.row_dimensions[current_row].height = row_h
 
         # 1列目：第○週
         cell_w = ws.cell(row=current_row, column=1, value=f"第{w}週")
@@ -549,131 +549,29 @@ def create_monthly_excel(age, config):
         cell_w.font = font_bold
         cell_w.border = border_all
 
+        # データ取得
+        user_values = config.get('values', {})
+        
         # 2列目：週のねらい
-        aim_val = user_values.get(f"week_aim_{w}", "")
-        cell_aim = ws.cell(row=current_row, column=2, value=aim_val)
+        cell_aim = ws.cell(row=current_row, column=2, value=user_values.get(f"week_aim_{w}", ""))
         cell_aim.alignment = align_top_left
         cell_aim.border = border_all
         cell_aim.font = font_std
 
         # 3列目：活動内容
-        act_val = user_values.get(f"week_activity_{w}", "")
-        cell_act = ws.cell(row=current_row, column=3, value=act_val)
+        cell_act = ws.cell(row=current_row, column=3, value=user_values.get(f"week_activity_{w}", ""))
         cell_act.alignment = align_top_left
         cell_act.border = border_all
         cell_act.font = font_std
 
         # 4列目：環境・配慮
-        care_val = user_values.get(f"week_care_{w}", "")
-        cell_care = ws.cell(row=current_row, column=4, value=care_val)
+        cell_care = ws.cell(row=current_row, column=4, value=user_values.get(f"week_care_{w}", ""))
         cell_care.alignment = align_top_left
         cell_care.border = border_all
         cell_care.font = font_std
 
         current_row += 1
 
-    from io import BytesIO
-    output = BytesIO()
-    wb.save(output)
-    return output.getvalue()
-    # ▼ 1. 用紙設定（A4縦・1ページに収める）
-    ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT  # 縦向き
-    ws.page_setup.fitToWidth = 1  # 横幅を1ページに収める
-    ws.page_setup.fitToHeight = 1 # 縦幅も1ページに収める
-
-    # ▼ 2. スタイル定義
-    font_std = Font(name="Meiryo UI", size=10)
-    font_bold = Font(name="Meiryo UI", size=11, bold=True)
-    font_title = Font(name="Meiryo UI", size=14, bold=True)
-    
-    border_thin = Side(border_style="thin", color="000000")
-    border_all = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
-    
-    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    align_top_left = Alignment(horizontal="left", vertical="top", wrap_text=True)
-
-    # ▼ 3. 列幅の設定（A4縦に収まるように調整）
-    # A:日付(小), B:活動(大), C:配慮(中), D:準備(小)
-    ws.column_dimensions['A'].width = 6   # 曜日
-    ws.column_dimensions['B'].width = 30  # 活動予定
-    ws.column_dimensions['C'].width = 25  # 援助・配慮
-    ws.column_dimensions['D'].width = 15  # 準備
-
-    # ▼ 4. タイトル周りの作成
-    ws.merge_cells('A1:D1')
-    ws["A1"] = f"【{age}】 週案"
-    ws["A1"].font = font_title
-    ws["A1"].alignment = align_center
-
-    # 期間の表示
-    week_str = config.get('week_range', '')
-    ws.merge_cells('A2:D2')
-    ws["A2"] = f"期間： {week_str}"
-    ws["A2"].font = font_std
-    ws["A2"].alignment = Alignment(horizontal="right", vertical="center")
-
-    # ▼ 5. 週のねらい（結合セル）
-    ws.merge_cells('A3:D3')
-    ws["A3"] = "■ 今週のねらい"
-    ws["A3"].font = font_bold
-    ws["A3"].fill = PatternFill(patternType='solid', fgColor='E2EFDA') # 薄い緑
-    ws["A3"].border = border_all
-
-    ws.merge_cells('A4:D5') # 2行分確保
-    ws["A4"] = config['values'].get('weekly_aim', '')
-    ws["A4"].alignment = align_top_left
-    ws["A4"].border = border_all
-    ws["A4"].font = font_std
-
-    # ▼ 6. 表ヘッダーの作成 (6行目)
-    headers = ["曜日", "活動予定", "援助・配慮", "準備"]
-    for col_idx, text in enumerate(headers, 1):
-        cell = ws.cell(row=6, column=col_idx, value=text)
-        cell.font = font_bold
-        cell.alignment = align_center
-        cell.border = border_all
-        cell.fill = PatternFill(patternType='solid', fgColor='D9E1F2') # 薄い青
-
-    # ▼ 7. 日ごとのデータ書き込み (7行目からスタート)
-    days_map = ["月", "火", "水", "木", "金", "土"]
-    current_row = 7
-    user_values = config['values']
-
-    for day in days_map:
-        # 高さの確保（1日につき4行分くらいの高さを設定して見やすくする）
-        ws.row_dimensions[current_row].height = 65 
-
-        # 1列目：曜日
-        cell_day = ws.cell(row=current_row, column=1, value=day)
-        cell_day.alignment = align_center
-        cell_day.font = font_bold
-        cell_day.border = border_all
-
-        # 2列目：活動
-        act_val = user_values.get(f"activity_{day}", "")
-        cell_act = ws.cell(row=current_row, column=2, value=act_val)
-        cell_act.alignment = align_top_left
-        cell_act.border = border_all
-        cell_act.font = font_std
-
-        # 3列目：配慮
-        care_val = user_values.get(f"care_{day}", "")
-        cell_care = ws.cell(row=current_row, column=3, value=care_val)
-        cell_care.alignment = align_top_left
-        cell_care.border = border_all
-        cell_care.font = font_std
-
-        # 4列目：準備
-        tool_val = user_values.get(f"tool_{day}", "")
-        cell_tool = ws.cell(row=current_row, column=4, value=tool_val)
-        cell_tool.alignment = align_top_left
-        cell_tool.border = border_all
-        cell_tool.font = font_std
-
-        current_row += 1
-
-    # バイナリデータとして返す
     from io import BytesIO
     output = BytesIO()
     wb.save(output)
@@ -867,21 +765,28 @@ if mode == "年間指導計画":
     # ▲▲▲ プレビューここまで ▲▲▲
 
 # ==========================================
-# モードB：月案（5週対応版）
+# モードB：月案（週数選択機能付き 確定版）
 # ==========================================
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
     
-    # 月の選択
-    selected_month = st.selectbox("対象月", [f"{i}月" for i in range(1, 13)], index=3) # デフォルト4月
+    # レイアウト調整：月と週数を横並びにする
+    col_set1, col_set2 = st.columns(2)
+    with col_set1:
+        selected_month = st.selectbox("対象月", [f"{i}月" for i in range(1, 13)], index=3)
+        st.session_state["selected_month"] = selected_month
+    with col_set2:
+        # ★ここで4週か5週か選べるようにする！
+        num_weeks = st.radio("週数を選択", [4, 5], horizontal=True)
 
     # セッションステート初期化
     if "monthly_aim_area" not in st.session_state:
         st.session_state["monthly_aim_area"] = ""
     
-    # 5週分のデータ枠を確保
-    weeks = [1, 2, 3, 4, 5]
-    for w in weeks:
+    # 選ばれた週数分だけキーを確保
+    target_weeks = list(range(1, num_weeks + 1)) # [1, 2, 3, 4] または [1, 2, 3, 4, 5]
+    
+    for w in target_weeks:
         for k in ["week_aim", "week_activity", "week_care"]:
             key_name = f"{k}_{w}"
             if key_name not in st.session_state:
@@ -891,16 +796,16 @@ elif "月案" in mode:
     with st.container(border=True):
         st.subheader("🤖 AI月案クリエイター")
         keyword_input = st.text_input("今月のテーマ・キーワード", 
-                                      placeholder="例：梅雨 室内遊び 七夕飾り 衛生管理",
+                                      placeholder="例：節分 豆まき 感染症対策 氷遊び",
                                       key="month_keyword")
 
-        if st.button("✨ このテーマで月案（5週分）を作成"):
+        if st.button("✨ このテーマで月案を作成"):
             if not keyword_input:
                 st.error("キーワードを入力してください。")
             else:
-                with st.spinner("AIが5週分の構成を考案中..."):
+                with st.spinner(f"AIが{num_weeks}週分の構成を考案中..."):
                     try:
-                        # プロンプト（5週分作るように指示）
+                        # プロンプト（週数を変数で渡す）
                         prompt = f"""
                         あなたはベテラン保育士です。以下の条件で月案を作成し、JSON形式のみを出力してください。
                         
@@ -908,7 +813,7 @@ elif "月案" in mode:
                         ・対象年齢: {age}
                         ・月: {selected_month}
                         ・キーワード: {keyword_input}
-                        ・第1週〜第5週まで作成すること
+                        ・週数: 第1週〜第{num_weeks}週まで作成すること（{num_weeks}週分厳守）
                         
                         【指示】
                         1. 「monthly_aim_sentence」：月のねらい（常体・〜する）
@@ -920,9 +825,8 @@ elif "月案" in mode:
                             "monthly_aim_sentence": "...",
                             "1": {{"aim": "...", "activity": "...", "care": "..."}},
                             "2": {{"aim": "...", "activity": "...", "care": "..."}},
-                            "3": {{"aim": "...", "activity": "...", "care": "..."}},
-                            "4": {{"aim": "...", "activity": "...", "care": "..."}},
-                            "5": {{"aim": "...", "activity": "...", "care": "..."}}
+                            ...
+                            "{num_weeks}": {{"aim": "...", "activity": "...", "care": "..."}}
                         }}
                         """
                         
@@ -933,19 +837,18 @@ elif "月案" in mode:
                         if match:
                             data = json.loads(match.group(0))
                             
-                            # 月のねらい反映
                             if "monthly_aim_sentence" in data:
                                 st.session_state["monthly_aim_area"] = data["monthly_aim_sentence"]
                             
-                            # 1〜5週のデータ反映
-                            for w in weeks:
+                            # 指定週数分だけデータを取り込む
+                            for w in target_weeks:
                                 w_str = str(w)
                                 if w_str in data:
                                     st.session_state[f"week_aim_{w}"] = data[w_str].get("aim", "")
                                     st.session_state[f"week_activity_{w}"] = data[w_str].get("activity", "")
                                     st.session_state[f"week_care_{w}"] = data[w_str].get("care", "")
                             
-                            st.success("作成しました！")
+                            st.success(f"{num_weeks}週分を作成しました！")
                             st.rerun()
                             
                     except Exception as e:
@@ -954,17 +857,14 @@ elif "月案" in mode:
     # ▼ 編集・確認エリア
     st.markdown("---")
     
-    # 月のねらい
     monthly_aim = st.text_area("■ 今月のねらい", 
                                key="monthly_aim_area",
                                height=100)
     
-    # 5週分の入力欄（タブで切り替えるか、縦に並べるか。縦が見やすい）
-    st.subheader("📅 週ごとの計画")
+    st.subheader(f"📅 週ごとの計画（全{num_weeks}週）")
     
-    user_values = {}
-    
-    for w in weeks:
+    # ループ回数を num_weeks に合わせる
+    for w in target_weeks:
         with st.expander(f"第{w}週の計画", expanded=True):
             cols = st.columns(3)
             with cols[0]:
@@ -977,40 +877,34 @@ elif "月案" in mode:
     # ▼ Excel出力
     st.markdown("---")
     if st.button("🚀 月案Excel作成"):
-        # 画面の値を集める
         excel_config = {
             'month': selected_month,
+            'num_weeks': num_weeks, # ★ここ重要：何週分作るかを関数に伝える
             'monthly_aim': st.session_state.get("monthly_aim_area", ""),
             'values': {}
         }
         
-        for w in weeks:
+        for w in target_weeks:
             excel_config['values'][f"week_aim_{w}"] = st.session_state.get(f"week_aim_{w}", "")
             excel_config['values'][f"week_activity_{w}"] = st.session_state.get(f"week_activity_{w}", "")
             excel_config['values'][f"week_care_{w}"] = st.session_state.get(f"week_care_{w}", "")
 
-        # A4縦関数呼び出し
         data = create_monthly_excel(age, excel_config)
         st.download_button("📥 ダウンロード", data, f"月案_{selected_month}.xlsx")
-        # ▼▼▼ プレビュー機能 ▼▼▼
-    st.markdown("---")
-    st.subheader("👀 仕上がりプレビュー")
 
-    # ▼▼▼ プレビュー機能（月案5週対応・確定版） ▼▼▼
+    # ▼▼▼ プレビュー機能（週数連動版） ▼▼▼
+    st.markdown("---")
     with st.container(border=True):
-        # selected_month が存在すればそれを使い、なければ「○月」と表示する
         current_month = st.session_state.get("selected_month", "○月")
-        st.markdown(f"### 🌙 {current_month} 指導計画")
+        st.markdown(f"### 🌙 {current_month} 指導計画 プレビュー")
         
-        # 月のねらいを表示
         m_aim = st.session_state.get("monthly_aim_area", "（未入力）")
         st.info(f"**今月のねらい**: {m_aim}")
 
-        # 5週間分をループで表示
-        for i in range(5):
+        # ここも num_weeks (range(1, num_weeks + 1)) に合わせる
+        for i in range(num_weeks):
             week_num = i + 1
             with st.expander(f"第 {week_num} 週の内容を確認", expanded=True):
-                # セッションステートからデータを取得
                 w_aim = st.session_state.get(f"week_aim_{week_num}", "（未入力）")
                 w_act = st.session_state.get(f"week_activity_{week_num}", "-")
                 w_care = st.session_state.get(f"week_care_{week_num}", "-")
@@ -1190,6 +1084,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
