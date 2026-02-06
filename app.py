@@ -472,15 +472,13 @@ def create_weekly_excel(age, config, orient="P"):
     wb = Workbook()
     ws = wb.active
     ws.title = "週案"
-# ==========================================
-# ▼ 1. 週構成型（A4縦）のExcel作成関数
-# ==========================================
+# ▼▼▼ ステップ1：ここからコピーして、ファイルの上の方（def create_monthly_excelがあった場所）に貼る ▼▼▼
+
+# 1. 週案形式（A4縦）のExcelを作る関数
 def create_monthly_excel_weekly(age, config):
     wb = Workbook()
     ws = wb.active
     ws.title = "月案_週構成"
-    
-    # A4縦設定
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.fitToWidth = 1
@@ -493,33 +491,28 @@ def create_monthly_excel_weekly(age, config):
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_left = Alignment(horizontal="left", vertical="top", wrap_text=True)
 
-    # 列幅
     ws.column_dimensions['A'].width = 6
     ws.column_dimensions['B'].width = 20
     ws.column_dimensions['C'].width = 30
     ws.column_dimensions['D'].width = 25
 
-    # タイトル
     month_str = config.get('month', '○月')
     ws.merge_cells('A1:D1')
     ws["A1"] = f"【{age}】 {month_str} 月案（週構成）"
     ws["A1"].font = font_title
     ws["A1"].alignment = align_center
 
-    # 今月のねらい
     ws.merge_cells('A2:D2')
     ws["A2"] = "■ 今月のねらい"
     ws["A2"].font = font_bold
     ws["A2"].fill = PatternFill(patternType='solid', fgColor='E2EFDA')
     ws["A2"].border = border_all
-
     ws.merge_cells('A3:D6')
     ws["A3"] = config.get('monthly_aim', '')
     ws["A3"].alignment = align_left
     ws["A3"].border = border_all
     ws["A3"].font = font_std
 
-    # ヘッダー
     headers = ["週", "週のねらい", "活動内容", "環境・配慮"]
     for i, h in enumerate(headers, 1):
         c = ws.cell(row=7, column=i, value=h)
@@ -528,7 +521,6 @@ def create_monthly_excel_weekly(age, config):
         c.border = border_all
         c.fill = PatternFill(patternType='solid', fgColor='D9E1F2')
 
-    # ループ出力
     current_row = 8
     num_weeks = config.get('num_weeks', 5)
     vals = config.get('values', {})
@@ -536,21 +528,17 @@ def create_monthly_excel_weekly(age, config):
     for w in range(1, num_weeks + 1):
         row_h = 90 if num_weeks == 4 else 75
         ws.row_dimensions[current_row].height = row_h
-
-        # 週番号
         c1 = ws.cell(row=current_row, column=1, value=f"第{w}週")
         c1.alignment = align_center
         c1.font = font_bold
         c1.border = border_all
         
-        # 各項目
         items = [f"week_aim_{w}", f"week_activity_{w}", f"week_care_{w}"]
         for idx, key in enumerate(items, 2):
             cell = ws.cell(row=current_row, column=idx, value=vals.get(key, ""))
             cell.alignment = align_left
             cell.font = font_std
             cell.border = border_all
-        
         current_row += 1
 
     from io import BytesIO
@@ -558,24 +546,18 @@ def create_monthly_excel_weekly(age, config):
     wb.save(output)
     return output.getvalue()
 
-
-# ==========================================
-# ▼ 2. 領域別型（A4横）のExcel作成関数
-# ==========================================
+# 2. 領域別形式（A4横）のExcelを作る関数
 def create_monthly_excel_domain(age, config):
     wb = Workbook()
     ws = wb.active
     ws.title = "月案_領域別"
-
-    # A4横設定
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE # A4横
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 1
     ws.page_margins.left = 0.5
     ws.page_margins.right = 0.5
 
-    # スタイル
     font_std = Font(name="Meiryo UI", size=9)
     font_bold = Font(name="Meiryo UI", size=10, bold=True)
     font_title = Font(name="Meiryo UI", size=14, bold=True)
@@ -585,7 +567,6 @@ def create_monthly_excel_domain(age, config):
     fill_head = PatternFill(patternType='solid', fgColor='B4C6E7')
     fill_sub = PatternFill(patternType='solid', fgColor='D9E1F2')
 
-    # 列幅
     ws.column_dimensions['A'].width = 5
     ws.column_dimensions['B'].width = 8
     ws.column_dimensions['C'].width = 32
@@ -593,7 +574,6 @@ def create_monthly_excel_domain(age, config):
     ws.column_dimensions['E'].width = 32
     ws.column_dimensions['F'].width = 32
 
-    # タイトル
     month_str = config.get('month', '○月')
     ws.merge_cells('A1:F1')
     ws["A1"] = f"{month_str}   月間指導計画（領域別）   {age}"
@@ -601,7 +581,6 @@ def create_monthly_excel_domain(age, config):
 
     vals = config.get('values', {})
 
-    # 保育目標・子どもの姿
     ws.merge_cells('A2:A3')
     ws["A2"] = "保育目標"
     ws["A2"].font = font_bold
@@ -626,7 +605,6 @@ def create_monthly_excel_domain(age, config):
     ws["B4"].alignment = align_left
     ws["B4"].border = border_all
 
-    # ヘッダー行
     headers = ["年間区別", "", "ねらい", "環境・構成", "予想される子どもの活動", "配慮事項"]
     for i, h in enumerate(headers, 1):
         c = ws.cell(row=6, column=i, value=h)
@@ -637,62 +615,65 @@ def create_monthly_excel_domain(age, config):
     ws.merge_cells('A6:B6')
     ws["A6"] = "年間区別"
 
-    # 行作成ヘルパー
     current_row = 7
     
-    def write_section(label_a, rows_data):
-        nonlocal current_row
-        start_row = current_row
-        
-        for label_b, key_prefix in rows_data:
-            ws.row_dimensions[current_row].height = 60
-            # B列
-            cb = ws.cell(row=current_row, column=2, value=label_b)
-            cb.font = font_bold
-            cb.alignment = align_center
-            cb.border = border_all
-            cb.fill = fill_sub
-            
-            # C-F列
-            cols = [("aim", 3), ("env", 4), ("act", 5), ("care", 6)]
-            for k, idx in cols:
-                val = vals.get(f"{key_prefix}_{k}", "")
-                cc = ws.cell(row=current_row, column=idx, value=val)
-                cc.font = font_std
-                cc.alignment = align_left
-                cc.border = border_all
-            current_row += 1
-            
-        # A列結合
-        ws.merge_cells(start_row=start_row, start_column=1, end_row=current_row-1, end_column=1)
-        ca = ws.cell(row=start_row, column=1, value=label_a)
-        ca.font = font_bold
-        ca.alignment = align_center
-        ca.border = border_all
-        ca.fill = fill_head
+    # 養護ブロック
+    for label_b, key_prefix in [("生命", "yogo_life"), ("情緒", "yogo_emo")]:
+        ws.row_dimensions[current_row].height = 60
+        cb = ws.cell(row=current_row, column=2, value=label_b)
+        cb.font = font_bold
+        cb.alignment = align_center
+        cb.border = border_all
+        cb.fill = fill_sub
+        cols = [("aim", 3), ("env", 4), ("act", 5), ("care", 6)]
+        for k, idx in cols:
+            val = vals.get(f"{key_prefix}_{k}", "")
+            cc = ws.cell(row=current_row, column=idx, value=val)
+            cc.font = font_std
+            cc.alignment = align_left
+            cc.border = border_all
+        current_row += 1
+    ws.merge_cells(start_row=7, start_column=1, end_row=current_row-1, end_column=1)
+    ca = ws.cell(row=7, column=1, value="養護")
+    ca.font = font_bold
+    ca.alignment = align_center
+    ca.border = border_all
+    ca.fill = fill_head
 
-    # データ出力実行
-    # 養護
-    write_section("養護", [("生命", "yogo_life"), ("情緒", "yogo_emo")])
-    # 教育
-    write_section("教育", [
-        ("健康", "edu_health"), ("人間関係", "edu_rel"), 
-        ("環境", "edu_env"), ("言葉", "edu_lang"), ("表現", "edu_exp")
-    ])
+    # 教育ブロック
+    start_edu = current_row
+    for label_b, key_prefix in [("健康", "edu_health"), ("人間関係", "edu_rel"), ("環境", "edu_env"), ("言葉", "edu_lang"), ("表現", "edu_exp")]:
+        ws.row_dimensions[current_row].height = 60
+        cb = ws.cell(row=current_row, column=2, value=label_b)
+        cb.font = font_bold
+        cb.alignment = align_center
+        cb.border = border_all
+        cb.fill = fill_sub
+        cols = [("aim", 3), ("env", 4), ("act", 5), ("care", 6)]
+        for k, idx in cols:
+            val = vals.get(f"{key_prefix}_{k}", "")
+            cc = ws.cell(row=current_row, column=idx, value=val)
+            cc.font = font_std
+            cc.alignment = align_left
+            cc.border = border_all
+        current_row += 1
+    ws.merge_cells(start_row=start_edu, start_column=1, end_row=current_row-1, end_column=1)
+    ca = ws.cell(row=start_edu, column=1, value="教育")
+    ca.font = font_bold
+    ca.alignment = align_center
+    ca.border = border_all
+    ca.fill = fill_head
     
-    # その他（A列タイトルのみ、B列は空白＝結合扱いに変更）
+    # その他ブロック
     others = [("食育", "food"), ("健康・安全", "safety"), ("保護者支援", "parent")]
     for label, key in others:
         ws.row_dimensions[current_row].height = 50
-        # A列
         ca = ws.cell(row=current_row, column=1, value=label)
         ca.font = font_bold
         ca.alignment = align_center
         ca.border = border_all
         ca.fill = fill_head
         ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=2)
-        
-        # C-F列
         cols = [("aim", 3), ("env", 4), ("act", 5), ("care", 6)]
         for k, idx in cols:
             val = vals.get(f"{key}_{k}", "")
@@ -706,6 +687,7 @@ def create_monthly_excel_domain(age, config):
     output = BytesIO()
     wb.save(output)
     return output.getvalue()
+# ▲▲▲ ステップ1 終わり ▲▲▲
 
 # ▼▼▼ 修正後の万能AI関数 ▼▼▼
 def ask_gemini_aim(age, keywords, doc_type="月間指導計画"):
@@ -897,46 +879,40 @@ if mode == "年間指導計画":
 # ==========================================
 # モードB：月案（ハイブリッド版）
 # ==========================================
+# ▼▼▼ ステップ2：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
-
-    # 共通設定：月選択
+    
     col_main1, col_main2 = st.columns([1, 2])
     with col_main1:
         month_list = [f"{i}月" for i in range(1, 13)]
         selected_month = st.selectbox("対象月", month_list, index=3)
         st.session_state["selected_month"] = selected_month
-    
     with col_main2:
-        # ★ここで書式を分岐させる！
-        plan_type = st.radio("作成する書式を選択してください", 
-                             ["週案形式（A4縦・週ごとの計画）", "領域別形式（A4横・5領域の計画）"],
+        plan_type = st.radio("書式選択", 
+                             ["週案形式（A4縦）", "領域別形式（A4横・5領域）"],
                              horizontal=True)
 
     st.divider()
 
     # ==========================================
-    # パターンA：週案形式（以前のコード）
+    # パターンA：週案形式
     # ==========================================
     if "週案形式" in plan_type:
-        st.caption("📅 週ごとのねらい・活動を積み上げていく形式です。")
-        
-        # 週数選択
+        st.caption("📅 週ごとのねらい・活動を積み上げる形式")
         num_weeks = st.radio("今月の週数", [4, 5], horizontal=True)
         target_weeks = list(range(1, num_weeks + 1))
         
-        # セッション初期化
-        if "monthly_aim_area" not in st.session_state:
-            st.session_state["monthly_aim_area"] = ""
+        # キー初期化
+        if "monthly_aim_area" not in st.session_state: st.session_state["monthly_aim_area"] = ""
         for w in target_weeks:
             for k in ["week_aim", "week_activity", "week_care"]:
                 if f"{k}_{w}" not in st.session_state: st.session_state[f"{k}_{w}"] = ""
 
-        # AIエリア
         with st.container(border=True):
             st.subheader("🤖 AI週案作成")
             keyword = st.text_input("テーマ・キーワード", key="kw_weekly")
-            if st.button("✨ 作成開始（週案形式）"):
+            if st.button("✨ 作成開始（週案）"):
                 with st.spinner("AIが思考中..."):
                     try:
                         prompt = f"""
@@ -960,8 +936,6 @@ elif "月案" in mode:
                             st.rerun()
                     except Exception as e: st.error(f"Error: {e}")
 
-        # 入力エリア
-        st.markdown("### ✏️ 編集")
         st.text_area("■ 今月のねらい", key="monthly_aim_area")
         for w in target_weeks:
             with st.expander(f"第{w}週の計画", expanded=True):
@@ -970,8 +944,7 @@ elif "月案" in mode:
                 c2.text_area("活動", key=f"week_activity_{w}", height=100)
                 c3.text_area("配慮", key=f"week_care_{w}", height=100)
         
-        # Excelボタン（週案用関数を呼ぶ）
-        if st.button("🚀 Excel作成（週案形式）"):
+        if st.button("🚀 Excel作成（週案）"):
             conf = {'month': selected_month, 'num_weeks': num_weeks, 'monthly_aim': st.session_state.get("monthly_aim_area", ""), 'values': {}}
             for w in target_weeks:
                 conf['values'][f"week_aim_{w}"] = st.session_state.get(f"week_aim_{w}", "")
@@ -982,12 +955,11 @@ elif "月案" in mode:
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_週構成.xlsx")
 
     # ==========================================
-    # パターンB：領域別形式（さっきのコード）
+    # パターンB：領域別形式
     # ==========================================
     else:
-        st.caption("📝 養護・教育（5領域）ごとに細かく計画する形式です。")
-        
-        # セッション初期化（必要キーを確保）
+        st.caption("📝 養護・教育（5領域）ごとに細かく計画する形式")
+        # キー初期化
         keys = ["target_goal", "child_status"]
         keys += [f"yogo_life_{k}" for k in ["aim", "env", "act", "care"]]
         keys += [f"yogo_emo_{k}" for k in ["aim", "env", "act", "care"]]
@@ -995,18 +967,15 @@ elif "月案" in mode:
             keys += [f"{a}_{k}" for k in ["aim", "env", "act", "care"]]
         for o in ["food", "safety", "parent"]:
             keys += [f"{o}_{k}" for k in ["aim", "env", "act", "care"]]
-        
         for k in keys:
             if k not in st.session_state: st.session_state[k] = ""
 
-        # AIエリア
         with st.container(border=True):
             st.subheader("🤖 AI領域別作成")
             keyword = st.text_input("テーマ・様子", key="kw_domain")
             if st.button("✨ 作成開始（領域別）"):
                 with st.spinner("5領域で構成中..."):
                     try:
-                        # 以前より簡略化したプロンプト例
                         prompt = f"""
                         年齢:{age}, 月:{selected_month}, キーワード:{keyword}
                         領域別の月案(JSON)を作成。
@@ -1023,57 +992,55 @@ elif "月案" in mode:
                             st.session_state["target_goal"] = data.get("target_goal", "")
                             st.session_state["child_status"] = data.get("child_status", "")
                             
-                            def set_vals(cat, p_map):
+                            def set_vals_local(cat, p_map):
                                 section = data.get(cat, {})
                                 for sub_k, sub_p in p_map:
                                     item = section.get(sub_k, {})
                                     for f in ["aim", "env", "act", "care"]:
                                         st.session_state[f"{sub_p}_{f}"] = item.get(f, "")
 
-                            set_vals("yogo", [("life","yogo_life"),("emo","yogo_emo")])
-                            set_vals("edu", [("health","edu_health"),("rel","edu_rel"),("env","edu_env"),("lang","edu_lang"),("exp","edu_exp")])
-                            set_vals("others", [("food","food"),("safety","safety"),("parent","parent")])
+                            set_vals_local("yogo", [("life","yogo_life"),("emo","yogo_emo")])
+                            set_vals_local("edu", [("health","edu_health"),("rel","edu_rel"),("env","edu_env"),("lang","edu_lang"),("exp","edu_exp")])
+                            set_vals_local("others", [("food","food"),("safety","safety"),("parent","parent")])
                             
                             st.success("作成完了！")
                             st.rerun()
                     except Exception as e: st.error(f"Error: {e}")
 
-        # 入力エリア（タブ）
-        st.markdown("### ✏️ 編集")
+        # 入力タブ
         st.text_area("保育目標", key="target_goal", height=60)
         st.text_area("子どもの姿", key="child_status", height=60)
         
         t1, t2, t3 = st.tabs(["養護", "教育(5領域)", "その他"])
         
-        def input_block(lbl, pf):
-            st.markdown(f"**{lbl}**")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.text_area("ねらい", key=f"{pf}_aim", height=80)
-            c2.text_area("環境", key=f"{pf}_env", height=80)
-            c3.text_area("活動", key=f"{pf}_act", height=80)
-            c4.text_area("配慮", key=f"{pf}_care", height=80)
-
         with t1:
-            input_block("生命", "yogo_life")
-            input_block("情緒", "yogo_emo")
-        with t2:
-            input_block("健康", "edu_health")
-            input_block("人間関係", "edu_rel")
-            input_block("環境", "edu_env")
-            input_block("言葉", "edu_lang")
-            input_block("表現", "edu_exp")
-        with t3:
-            input_block("食育", "food")
-            input_block("安全", "safety")
-            input_block("保護者", "parent")
+            st.markdown("**生命**")
+            c1,c2,c3,c4=st.columns(4)
+            c1.text_area("ねらい",key="yogo_life_aim");c2.text_area("環境",key="yogo_life_env");c3.text_area("活動",key="yogo_life_act");c4.text_area("配慮",key="yogo_life_care")
+            st.markdown("**情緒**")
+            c1,c2,c3,c4=st.columns(4)
+            c1.text_area("ねらい",key="yogo_emo_aim");c2.text_area("環境",key="yogo_emo_env");c3.text_area("活動",key="yogo_emo_act");c4.text_area("配慮",key="yogo_emo_care")
 
-        # Excelボタン（領域別用関数を呼ぶ）
-        if st.button("🚀 Excel作成（領域別形式）"):
+        with t2:
+            edu_map = [("健康","edu_health"), ("人間関係","edu_rel"), ("環境","edu_env"), ("言葉","edu_lang"), ("表現","edu_exp")]
+            for lbl, pf in edu_map:
+                st.markdown(f"**{lbl}**")
+                c1,c2,c3,c4=st.columns(4)
+                c1.text_area("ねらい",key=f"{pf}_aim",height=70);c2.text_area("環境",key=f"{pf}_env",height=70);c3.text_area("活動",key=f"{pf}_act",height=70);c4.text_area("配慮",key=f"{pf}_care",height=70)
+        
+        with t3:
+            oth_map = [("食育","food"), ("安全","safety"), ("保護者","parent")]
+            for lbl, pf in oth_map:
+                st.markdown(f"**{lbl}**")
+                c1,c2,c3,c4=st.columns(4)
+                c1.text_area("ねらい",key=f"{pf}_aim",height=70);c2.text_area("環境",key=f"{pf}_env",height=70);c3.text_area("活動",key=f"{pf}_act",height=70);c4.text_area("配慮",key=f"{pf}_care",height=70)
+
+        if st.button("🚀 Excel作成（領域別）"):
             conf = {'month': selected_month, 'values': {}}
             for k in st.session_state: conf['values'][k] = st.session_state[k]
             data = create_monthly_excel_domain(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
-
+# ▲▲▲ ステップ2 終わり ▲▲▲
     # --- プレビュー機能 ---
     st.markdown("---")
     with st.container(border=True):
@@ -1261,6 +1228,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
