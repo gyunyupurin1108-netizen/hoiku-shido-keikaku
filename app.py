@@ -879,7 +879,7 @@ if mode == "年間指導計画":
 # ==========================================
 # モードB：月案（ハイブリッド版）
 # ==========================================
-# ▼▼▼ ステップ2（修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
+# ▼▼▼ ステップ2（完全修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
     
@@ -909,6 +909,7 @@ elif "月案" in mode:
             for k in ["week_aim", "week_activity", "week_care"]:
                 if f"{k}_{w}" not in st.session_state: st.session_state[f"{k}_{w}"] = ""
 
+        # AI生成エリア（週案）
         with st.container(border=True):
             st.subheader("🤖 AI週案作成")
             keyword = st.text_input("テーマ・キーワード", key="kw_weekly")
@@ -936,7 +937,10 @@ elif "月案" in mode:
                             st.rerun()
                     except Exception as e: st.error(f"Error: {e}")
 
+        # 入力エリア（週案）
         st.text_area("■ 今月のねらい", key="monthly_aim_area")
+        
+        # ★エラーの原因だった場所：このループをifブロックの中に確実に入れる
         for w in target_weeks:
             with st.expander(f"第{w}週の計画", expanded=True):
                 c1, c2, c3 = st.columns(3)
@@ -944,6 +948,7 @@ elif "月案" in mode:
                 c2.text_area("活動", key=f"week_activity_{w}", height=100)
                 c3.text_area("配慮", key=f"week_care_{w}", height=100)
         
+        # Excel作成ボタン（週案）
         if st.button("🚀 Excel作成（週案）"):
             conf = {'month': selected_month, 'num_weeks': num_weeks, 'monthly_aim': st.session_state.get("monthly_aim_area", ""), 'values': {}}
             for w in target_weeks:
@@ -955,7 +960,7 @@ elif "月案" in mode:
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_週構成.xlsx")
 
     # ==========================================
-    # パターンB：領域別形式（修正済み）
+    # パターンB：領域別形式
     # ==========================================
     else:
         st.caption("📝 養護・教育（5領域）ごとに細かく計画する形式")
@@ -968,11 +973,12 @@ elif "月案" in mode:
         for o in ["food", "safety", "parent"]:
             keys += [f"{o}_{k}" for k in ["aim", "env", "act", "care"]]
         
-        # 【重要修正】ここでNoneが入らないように確実に初期化
+        # None対策付き初期化
         for k in keys:
             if k not in st.session_state or st.session_state[k] is None:
                 st.session_state[k] = ""
 
+        # AI生成エリア（領域別）
         with st.container(border=True):
             st.subheader("🤖 AI領域別作成")
             keyword = st.text_input("テーマ・様子", key="kw_domain")
@@ -992,7 +998,6 @@ elif "月案" in mode:
                         match = re.search(r'\{.*\}', res.text, re.DOTALL)
                         if match:
                             data = json.loads(match.group(0))
-                            # 【重要修正】Noneが来てもエラーにならないよう str(... or "") を追加
                             st.session_state["target_goal"] = str(data.get("target_goal") or "")
                             st.session_state["child_status"] = str(data.get("child_status") or "")
                             
@@ -1001,7 +1006,6 @@ elif "月案" in mode:
                                 for sub_k, sub_p in p_map:
                                     item = section.get(sub_k, {})
                                     for f in ["aim", "env", "act", "care"]:
-                                        # 【重要修正】ここもNone対策
                                         st.session_state[f"{sub_p}_{f}"] = str(item.get(f) or "")
 
                             set_vals_local("yogo", [("life","yogo_life"),("emo","yogo_emo")])
@@ -1012,7 +1016,7 @@ elif "月案" in mode:
                             st.rerun()
                     except Exception as e: st.error(f"Error: {e}")
 
-        # 入力タブ（念のため表示直前にもNoneチェック）
+        # 入力エリア（領域別）
         if st.session_state.get("target_goal") is None: st.session_state["target_goal"] = ""
         st.text_area("保育目標", key="target_goal", height=60)
         
@@ -1043,13 +1047,13 @@ elif "月案" in mode:
                 c1,c2,c3,c4=st.columns(4)
                 c1.text_area("ねらい",key=f"{pf}_aim",height=70);c2.text_area("環境",key=f"{pf}_env",height=70);c3.text_area("活動",key=f"{pf}_act",height=70);c4.text_area("配慮",key=f"{pf}_care",height=70)
 
+        # Excel作成ボタン（領域別）
         if st.button("🚀 Excel作成（領域別）"):
             conf = {'month': selected_month, 'values': {}}
             for k in st.session_state: conf['values'][k] = st.session_state[k]
             data = create_monthly_excel_domain(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
-# ▲▲▲ ステップ2（修正済み） 終わり ▲▲▲
-# ▲▲▲ ステップ2 終わり ▲▲▲
+# ▲▲▲ 完全修正版 終わり ▲▲▲
     # --- プレビュー機能 ---
     st.markdown("---")
     with st.container(border=True):
@@ -1237,6 +1241,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
