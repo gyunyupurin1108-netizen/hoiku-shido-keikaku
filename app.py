@@ -879,7 +879,7 @@ if mode == "年間指導計画":
 # ==========================================
 # モードB：月案（ハイブリッド版）
 # ==========================================
-# ▼▼▼ ステップ2：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
+# ▼▼▼ ステップ2（修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
     
@@ -955,7 +955,7 @@ elif "月案" in mode:
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_週構成.xlsx")
 
     # ==========================================
-    # パターンB：領域別形式
+    # パターンB：領域別形式（修正済み）
     # ==========================================
     else:
         st.caption("📝 養護・教育（5領域）ごとに細かく計画する形式")
@@ -967,8 +967,11 @@ elif "月案" in mode:
             keys += [f"{a}_{k}" for k in ["aim", "env", "act", "care"]]
         for o in ["food", "safety", "parent"]:
             keys += [f"{o}_{k}" for k in ["aim", "env", "act", "care"]]
+        
+        # 【重要修正】ここでNoneが入らないように確実に初期化
         for k in keys:
-            if k not in st.session_state: st.session_state[k] = ""
+            if k not in st.session_state or st.session_state[k] is None:
+                st.session_state[k] = ""
 
         with st.container(border=True):
             st.subheader("🤖 AI領域別作成")
@@ -989,15 +992,17 @@ elif "月案" in mode:
                         match = re.search(r'\{.*\}', res.text, re.DOTALL)
                         if match:
                             data = json.loads(match.group(0))
-                            st.session_state["target_goal"] = data.get("target_goal", "")
-                            st.session_state["child_status"] = data.get("child_status", "")
+                            # 【重要修正】Noneが来てもエラーにならないよう str(... or "") を追加
+                            st.session_state["target_goal"] = str(data.get("target_goal") or "")
+                            st.session_state["child_status"] = str(data.get("child_status") or "")
                             
                             def set_vals_local(cat, p_map):
                                 section = data.get(cat, {})
                                 for sub_k, sub_p in p_map:
                                     item = section.get(sub_k, {})
                                     for f in ["aim", "env", "act", "care"]:
-                                        st.session_state[f"{sub_p}_{f}"] = item.get(f, "")
+                                        # 【重要修正】ここもNone対策
+                                        st.session_state[f"{sub_p}_{f}"] = str(item.get(f) or "")
 
                             set_vals_local("yogo", [("life","yogo_life"),("emo","yogo_emo")])
                             set_vals_local("edu", [("health","edu_health"),("rel","edu_rel"),("env","edu_env"),("lang","edu_lang"),("exp","edu_exp")])
@@ -1007,8 +1012,11 @@ elif "月案" in mode:
                             st.rerun()
                     except Exception as e: st.error(f"Error: {e}")
 
-        # 入力タブ
+        # 入力タブ（念のため表示直前にもNoneチェック）
+        if st.session_state.get("target_goal") is None: st.session_state["target_goal"] = ""
         st.text_area("保育目標", key="target_goal", height=60)
+        
+        if st.session_state.get("child_status") is None: st.session_state["child_status"] = ""
         st.text_area("子どもの姿", key="child_status", height=60)
         
         t1, t2, t3 = st.tabs(["養護", "教育(5領域)", "その他"])
@@ -1040,6 +1048,7 @@ elif "月案" in mode:
             for k in st.session_state: conf['values'][k] = st.session_state[k]
             data = create_monthly_excel_domain(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
+# ▲▲▲ ステップ2（修正済み） 終わり ▲▲▲
 # ▲▲▲ ステップ2 終わり ▲▲▲
     # --- プレビュー機能 ---
     st.markdown("---")
@@ -1228,6 +1237,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
