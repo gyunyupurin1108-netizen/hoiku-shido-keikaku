@@ -1056,32 +1056,7 @@ elif "月案" in mode:
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
 # ▲▲▲ 完全修正版 終わり ▲▲▲
 # ▲▲▲ 完全修正版 終わり ▲▲▲
-    # --- プレビュー機能 ---
-    st.markdown("---")
-    with st.container(border=True):
-        preview_month = st.session_state.get("selected_month", "○月")
-        st.markdown(f"### 🌙 {preview_month} 指導計画 プレビュー")
-        
-        p_aim = st.session_state.get("monthly_aim_area", "（未入力）")
-        st.info(f"**今月のねらい**: {p_aim}")
-
-        for i in range(num_weeks): # ここも変数 num_weeks を使用
-            w_num = i + 1
-            with st.expander(f"第 {w_num} 週の内容を確認", expanded=True):
-                pv_aim = st.session_state.get(f"week_aim_{w_num}", "（未入力）")
-                pv_act = st.session_state.get(f"week_activity_{w_num}", "-")
-                pv_care = st.session_state.get(f"week_care_{w_num}", "-")
-                
-                st.markdown("**🎯 週のねらい**")
-                st.write(pv_aim)
-                
-                pc1, pc2 = st.columns(2)
-                with pc1:
-                    st.caption("▼活動内容")
-                    st.write(pv_act)
-                with pc2:
-                    st.caption("▼環境・配慮")
-                    st.write(pv_care)
+   
 
 
 # ==========================================
@@ -1243,6 +1218,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
