@@ -879,8 +879,8 @@ if mode == "年間指導計画":
 # ==========================================
 # モードB：月案（ハイブリッド版）
 # ==========================================
-# ▼▼▼ ステップ2（完全修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
-# ▼▼▼ ステップ2（完全修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
+
+# ▼▼▼ 月案（完成版・プレビュー付き）：ここからコピーして上書きしてください ▼▼▼
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
     
@@ -940,16 +940,25 @@ elif "月案" in mode:
 
         # 入力エリア（週案）
         st.text_area("■ 今月のねらい", key="monthly_aim_area")
-        
-        # ★エラーの原因だった場所：このループをifブロックの中に確実に入れる
         for w in target_weeks:
             with st.expander(f"第{w}週の計画", expanded=True):
                 c1, c2, c3 = st.columns(3)
                 c1.text_area("週ねらい", key=f"week_aim_{w}", height=100)
                 c2.text_area("活動", key=f"week_activity_{w}", height=100)
                 c3.text_area("配慮", key=f"week_care_{w}", height=100)
+
+        # ★★★ 週案用のプレビュー復活 ★★★
+        st.markdown("---")
+        st.subheader("👀 プレビュー（全体確認）")
+        cols = st.columns(num_weeks)
+        for i, w in enumerate(target_weeks):
+            with cols[i]:
+                st.info(f"**第{w}週**")
+                st.markdown(f"**ねらい**: {st.session_state.get(f'week_aim_{w}', '')}")
+                st.markdown(f"**活動**: {st.session_state.get(f'week_activity_{w}', '')}")
         
         # Excel作成ボタン（週案）
+        st.markdown("")
         if st.button("🚀 Excel作成（週案）"):
             conf = {'month': selected_month, 'num_weeks': num_weeks, 'monthly_aim': st.session_state.get("monthly_aim_area", ""), 'values': {}}
             for w in target_weeks:
@@ -1048,15 +1057,27 @@ elif "月案" in mode:
                 c1,c2,c3,c4=st.columns(4)
                 c1.text_area("ねらい",key=f"{pf}_aim",height=70);c2.text_area("環境",key=f"{pf}_env",height=70);c3.text_area("活動",key=f"{pf}_act",height=70);c4.text_area("配慮",key=f"{pf}_care",height=70)
 
+        # ★★★ 領域別用の簡易プレビュー（ねらい一覧） ★★★
+        st.markdown("---")
+        with st.expander("👀 ねらい一覧（プレビュー）", expanded=False):
+            st.markdown("**【養護】**")
+            st.write(f"・生命: {st.session_state.get('yogo_life_aim','')}")
+            st.write(f"・情緒: {st.session_state.get('yogo_emo_aim','')}")
+            st.markdown("**【教育】**")
+            st.write(f"・健康: {st.session_state.get('edu_health_aim','')}")
+            st.write(f"・人間関係: {st.session_state.get('edu_rel_aim','')}")
+            st.write(f"・環境: {st.session_state.get('edu_env_aim','')}")
+            st.write(f"・言葉: {st.session_state.get('edu_lang_aim','')}")
+            st.write(f"・表現: {st.session_state.get('edu_exp_aim','')}")
+
         # Excel作成ボタン（領域別）
+        st.markdown("")
         if st.button("🚀 Excel作成（領域別）"):
             conf = {'month': selected_month, 'values': {}}
             for k in st.session_state: conf['values'][k] = st.session_state[k]
             data = create_monthly_excel_domain(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
-# ▲▲▲ 完全修正版 終わり ▲▲▲
-# ▲▲▲ 完全修正版 終わり ▲▲▲
-   
+# ▲▲▲ 完成版 終わり ▲▲▲
 
 
 # ==========================================
@@ -1218,6 +1239,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
