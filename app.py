@@ -880,6 +880,7 @@ if mode == "年間指導計画":
 # モードB：月案（ハイブリッド版）
 # ==========================================
 # ▼▼▼ ステップ2（完全修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
+# ▼▼▼ ステップ2（完全修正版）：ここからコピーして、elif "月案" in mode: の部分に上書きする ▼▼▼
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
     
@@ -1053,6 +1054,7 @@ elif "月案" in mode:
             for k in st.session_state: conf['values'][k] = st.session_state[k]
             data = create_monthly_excel_domain(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
+# ▲▲▲ 完全修正版 終わり ▲▲▲
 # ▲▲▲ 完全修正版 終わり ▲▲▲
     # --- プレビュー機能 ---
     st.markdown("---")
@@ -1241,6 +1243,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
