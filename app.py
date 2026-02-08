@@ -879,8 +879,7 @@ if mode == "年間指導計画":
 # ==========================================
 # モードB：月案（ハイブリッド版）
 # ==========================================
-
-# ▼▼▼ 月案（完成版・プレビュー付き）：ここからコピーして上書きしてください ▼▼▼
+# ▼▼▼ 月案（完全決定版・全エラー修正済み）：ここからコピーして上書きしてください ▼▼▼
 elif "月案" in mode:
     st.header(f"🌙 {age} 月案作成")
     
@@ -904,50 +903,68 @@ elif "月案" in mode:
         num_weeks = st.radio("今月の週数", [4, 5], horizontal=True)
         target_weeks = list(range(1, num_weeks + 1))
         
-        # キー初期化
+        # キー初期化（None対策）
         if "monthly_aim_area" not in st.session_state: st.session_state["monthly_aim_area"] = ""
         for w in target_weeks:
             for k in ["week_aim", "week_activity", "week_care"]:
-                if f"{k}_{w}" not in st.session_state: st.session_state[f"{k}_{w}"] = ""
+                if f"{k}_{w}" not in st.session_state or st.session_state[f"{k}_{w}"] is None:
+                    st.session_state[f"{k}_{w}"] = ""
 
         # AI生成エリア（週案）
         with st.container(border=True):
             st.subheader("🤖 AI週案作成")
             keyword = st.text_input("テーマ・キーワード", key="kw_weekly")
             if st.button("✨ 作成開始（週案）"):
-                with st.spinner("AIが思考中..."):
+                with st.spinner("週ごとの計画を構成中..."):
                     try:
                         prompt = f"""
                         年齢:{age}, 月:{selected_month}, キーワード:{keyword}, 週数:{num_weeks}
                         週ごとの月案(JSON)を作成せよ。
-                        キー: monthly_aim_sentence, "1":{{aim, activity, care}}, ... "{num_weeks}":...
+                        
+                        【重要：絶対に空データ(null)にしないこと】
+                        値がない場合でも空文字 "" を入れること。
+                        
+                        キー構造: 
+                        {{
+                            "monthly_aim_sentence": "今月のねらい", 
+                            "1":{{"aim":"...", "activity":"...", "care":"..."}}, 
+                            ... 
+                        }}
                         """
                         model = genai.GenerativeModel('models/gemini-2.5-flash')
                         res = model.generate_content(prompt)
                         match = re.search(r'\{.*\}', res.text, re.DOTALL)
                         if match:
                             data = json.loads(match.group(0))
-                            st.session_state["monthly_aim_area"] = data.get("monthly_aim_sentence", "")
+                            # ★修正ポイント：Noneが来ても str(... or "") で空文字に変換
+                            st.session_state["monthly_aim_area"] = str(data.get("monthly_aim_sentence") or "")
                             for w in target_weeks:
                                 w_str = str(w)
                                 if w_str in data:
-                                    st.session_state[f"week_aim_{w}"] = data[w_str].get("aim", "")
-                                    st.session_state[f"week_activity_{w}"] = data[w_str].get("activity", "")
-                                    st.session_state[f"week_care_{w}"] = data[w_str].get("care", "")
+                                    st.session_state[f"week_aim_{w}"] = str(data[w_str].get("aim") or "")
+                                    st.session_state[f"week_activity_{w}"] = str(data[w_str].get("activity") or "")
+                                    st.session_state[f"week_care_{w}"] = str(data[w_str].get("care") or "")
                             st.success("作成完了！")
                             st.rerun()
                     except Exception as e: st.error(f"Error: {e}")
 
         # 入力エリア（週案）
+        # 表示直前にも念のためNoneチェック
+        if st.session_state.get("monthly_aim_area") is None: st.session_state["monthly_aim_area"] = ""
         st.text_area("■ 今月のねらい", key="monthly_aim_area")
+        
         for w in target_weeks:
             with st.expander(f"第{w}週の計画", expanded=True):
+                # 表示直前チェック
+                for k in ["week_aim", "week_activity", "week_care"]:
+                    if st.session_state.get(f"{k}_{w}") is None: st.session_state[f"{k}_{w}"] = ""
+                
                 c1, c2, c3 = st.columns(3)
                 c1.text_area("週ねらい", key=f"week_aim_{w}", height=100)
                 c2.text_area("活動", key=f"week_activity_{w}", height=100)
                 c3.text_area("配慮", key=f"week_care_{w}", height=100)
 
-        # ★★★ 週案用のプレビュー復活 ★★★
+        # プレビュー（週案）
         st.markdown("---")
         st.subheader("👀 プレビュー（全体確認）")
         cols = st.columns(num_weeks)
@@ -969,9 +986,8 @@ elif "月案" in mode:
             data = create_monthly_excel_weekly(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_週構成.xlsx")
 
-    
     # ==========================================
-    # パターンB：領域別形式（修正：AI指示強化版）
+    # パターンB：領域別形式（全修正済み）
     # ==========================================
     else:
         st.caption("📝 養護・教育（5領域）ごとに細かく計画する形式")
@@ -996,7 +1012,6 @@ elif "月案" in mode:
             if st.button("✨ 作成開始（領域別）"):
                 with st.spinner("全部の欄を詳細に考えています..."):
                     try:
-                        # ★ここが修正ポイント：AIへの指示を強力にしました
                         prompt = f"""
                         あなたは日本の保育士です。月案（領域別）を作成してください。
                         年齢:{age}, 月:{selected_month}, キーワード:{keyword}
@@ -1082,7 +1097,7 @@ elif "月案" in mode:
                 c1,c2,c3,c4=st.columns(4)
                 c1.text_area("ねらい",key=f"{pf}_aim",height=70);c2.text_area("環境",key=f"{pf}_env",height=70);c3.text_area("活動",key=f"{pf}_act",height=70);c4.text_area("配慮",key=f"{pf}_care",height=70)
 
-        # ★★★ 領域別用の簡易プレビュー（ねらい一覧） ★★★
+        # プレビュー（領域別）
         st.markdown("---")
         with st.expander("👀 ねらい一覧（プレビュー）", expanded=False):
             st.markdown("**【養護】**")
@@ -1102,7 +1117,7 @@ elif "月案" in mode:
             for k in st.session_state: conf['values'][k] = st.session_state[k]
             data = create_monthly_excel_domain(age, conf)
             st.download_button("📥 ダウンロード", data, f"月案_{selected_month}_領域別.xlsx")
-# ▲▲▲ 完成版 終わり ▲▲▲
+# ▲▲▲ 月案（完全決定版） 終わり ▲▲▲
 
 
 # ==========================================
@@ -1264,6 +1279,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
