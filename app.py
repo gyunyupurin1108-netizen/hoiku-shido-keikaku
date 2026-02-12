@@ -761,22 +761,41 @@ st.sidebar.markdown("---")
 
 with st.sidebar:
     st.header("⚙️ 設定")
-    # ここで名前（またはクラス名）を入力させます
-    user_id = st.text_input("クラス名・担任名", value="テストユーザー")
+    st.subheader("💾 データの保存・読込")
     
-    # 注意書きを表示
+    # 【修正】入力欄は1つにまとめました
+    user_id = st.text_input("先生のお名前 (ID)", value="テストユーザー", help="半角英数字推奨（例: yamada）")
+    
+    # 注意書き
     if user_id == "テストユーザー":
-        st.warning("⚠️ 名前を変更してください（他の人と被ると上書きされます）")st.sidebar.subheader("💾 データの保存・読込")
-user_id = st.sidebar.text_input("先生のお名前 (ID)", placeholder="例: yamada")
-st.sidebar.caption("名前を入力して保存すると、後で続きから始められます。")
-
-c1, c2 = st.sidebar.columns(2)
-if c1.button("データ保存"):
-    if user_id:
-        if save_data_to_sheet(user_id, mode):
-            st.sidebar.success(f"{mode}を保存しました！")
+        st.warning("⚠️ 名前を変更してください（他の人と被ると上書きされます）")
     else:
-        st.sidebar.error("名前を入力してください")
+        st.caption(f"「{user_id}」さんのデータとして扱います。")
+
+    st.divider() # 区切り線で見やすく
+
+    c1, c2 = st.columns(2)
+    
+    # 保存ボタン
+    if c1.button("データ保存"):
+        if user_id:
+            # save_data_to_sheet 関数が True を返したら成功
+            if save_data_to_sheet(user_id, mode):
+                st.success(f"{mode}を保存しました！")
+        else:
+            st.error("名前を入力してください")
+
+    # 読込ボタン
+    if c2.button("データ読込"):
+        if user_id:
+            # load_data_from_sheet 関数が True を返したら成功
+            if load_data_from_sheet(user_id, mode):
+                st.success("読み込みました！")
+                st.rerun() # ★重要：画面を更新して、読み込んだデータを表示させる
+            else:
+                st.warning("データが見つかりません")
+        else:
+            st.error("名前を入力してください")
 
 if c2.button("データ読込"):
     if user_id:
@@ -1288,6 +1307,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
