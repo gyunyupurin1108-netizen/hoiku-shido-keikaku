@@ -6,7 +6,6 @@ import pandas as pd
 import datetime
 import json
 import re
-from streamlit_gsheets import GSheetsConnection
 import google.generativeai as genai
 
 # SecretsからAPIキーを読み込む（設定されていない場合のエラー回避付き）
@@ -339,73 +338,9 @@ TEIKEI_DATA = {
 }
 DEFAULT_TEXTS = ["（定型文を選択、または直接入力）", "自分で入力する"]
 
-# --- 2. データベース操作関数 (保存・読込) ---
 
-def load_data_from_sheet(user_id, doc_type):
-    """スプレッドシートからデータを読み込み、セッションステートに反映する"""
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    try:
-        df = conn.read(ttl=0)
-        # ユーザーIDと書類タイプで検索
-        user_df = df[(df["user_id"] == user_id) & (df["doc_type"] == doc_type)]
-        
-        if not user_df.empty:
-            # 最新のデータを取得
-            latest_row = user_df.iloc[-1]
-            json_str = latest_row["data_json"]
-            data_dict = json.loads(json_str)
-            
-            # セッションステートに書き戻す
-            for key, value in data_dict.items():
-                # ボタン自体のキーなどは上書きしないように除外する
-                if key not in ["btn_load_sidebar", "btn_generate", "btn_save"]:
-                    st.session_state[key] = value
-            return True
-        else:
-            return False
-    except Exception as e:
-        st.error(f"読み込みエラー: {e}")
-        return False
 
-def save_data_to_sheet(user_id, doc_type):
-    """現在のセッションステート（入力内容）をJSONにして保存する"""
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    try:
-        df = conn.read(ttl=0)
-        
-        # 保存対象のキーのみを抽出（ウィジェットのキーなど）
-        save_dict = {}
-        for key in st.session_state:
-            # ★この2行を追加：ボタンのキー（btn_から始まるもの）は保存しない
-            if key.startswith("btn_"):
-                continue
-            # Streamlitの内部キーなどを除外して保存
-            if isinstance(st.session_state[key], (str, int, float, bool, list)):
-                save_dict[key] = st.session_state[key]
-            # 日付型はJSONにできないので文字列変換
-            elif isinstance(st.session_state[key], (datetime.date, datetime.datetime)):
-                save_dict[key] = st.session_state[key].strftime("%Y-%m-%d")
 
-        json_str = json.dumps(save_dict, ensure_ascii=False)
-        now_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        
-        # 新しい行を作成
-        new_row = pd.DataFrame([{
-            "user_id": user_id,
-            "doc_type": doc_type,
-            "updated_at": now_str,
-            "data_json": json_str
-        }])
-        
-        # 既存データがあれば、そのユーザー・タイプの古いデータを削除して上書きするロジックも可能だが、
-        # ここではシンプルに「追記」して、読み込み時に「最新」を取る方式にする
-        # (スプレッドシートが重くなる場合は、定期的に削除が必要)
-        updated_df = pd.concat([df, new_row], ignore_index=True)
-        conn.update(data=updated_df)
-        return True
-    except Exception as e:
-        st.error(f"保存エラー: {e}")
-        return False
 
 # --- 3. Excel作成関数群 (前と同じなので省略せず記述) ---
 
@@ -760,51 +695,7 @@ st.sidebar.markdown("---")
 st.sidebar.link_button("☕ 掲示板（休憩室）へ", "https://hoiku-bbs-ez5sr2ocp4ni2r4ypxuqx6.streamlit.app")
 st.sidebar.markdown("---")
 
-# 📥 データ保存・読込エリア（サイドバー下部）
-# サイドバーの一番上あたりに追加してください
 
-# ▼▼▼ ここから下をコピーして、サイドバーのボタン部分を書き換えてください ▼▼▼
-with st.sidebar:
-    st.header("⚙️ 設定")
-    st.subheader("💾 データの保存・読込")
-    
-    # 【修正】入力欄は1つにまとめました
-    user_id = st.text_input("先生のお名前 (ID)", value="テストユーザー", help="半角英数字推奨（例: yamada）")
-    
-    # 注意書き
-    if user_id == "テストユーザー":
-        st.warning("⚠️ 名前を変更してください（他の人と被ると上書きされます）")
-    else:
-        st.caption(f"「{user_id}」さんのデータとして扱います。")
-
-    st.divider() # 区切り線で見やすく
-
-    c1, c2 = st.columns(2)
-    # 保存ボタン（key付き）
-    # ▼▼▼ ここから下をコピーして、サイドバーのボタン部分を書き換えてください ▼▼▼
-    
-    # 保存ボタン（key付き）
-    if c1.button("データ保存", key="btn_save_sidebar"):
-        if user_id:
-            if save_data_to_sheet(user_id, mode):
-                st.success(f"{mode}を保存しました！")
-        else:
-            st.error("名前を入力してください")
-
-    # 読込ボタン（key付き）
-    if c2.button("データ読込", key="btn_load_sidebar"):
-        if user_id:
-            if load_data_from_sheet(user_id, mode):
-                st.success("読み込みました！")
-                st.rerun() # 画面を更新
-            else:
-                st.warning("データが見つかりません")
-        else:
-            st.error("名前を入力してください")
-            
-    # ▲▲▲ ここまで ▲▲▲
-            
-    # ▲▲▲ ここまで ▲▲▲
 
 
 # ==========================================
@@ -1306,6 +1197,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
