@@ -357,8 +357,9 @@ def load_data_from_sheet(user_id, doc_type):
             
             # セッションステートに書き戻す
             for key, value in data_dict.items():
-                # 日付型などの復元が必要な場合はここで処理可能だが、今回は文字列として戻す
-                st.session_state[key] = value
+                # ボタン自体のキーなどは上書きしないように除外する
+                if key not in ["btn_load_sidebar", "btn_generate", "btn_save"]:
+                    st.session_state[key] = value
             return True
         else:
             return False
@@ -375,6 +376,9 @@ def save_data_to_sheet(user_id, doc_type):
         # 保存対象のキーのみを抽出（ウィジェットのキーなど）
         save_dict = {}
         for key in st.session_state:
+            # ★この2行を追加：ボタンのキー（btn_から始まるもの）は保存しない
+            if key.startswith("btn_"):
+                continue
             # Streamlitの内部キーなどを除外して保存
             if isinstance(st.session_state[key], (str, int, float, bool, list)):
                 save_dict[key] = st.session_state[key]
@@ -1302,6 +1306,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
