@@ -777,6 +777,9 @@ with st.sidebar:
 
     c1, c2 = st.columns(2)
     # 保存ボタン（key付き）
+    # ▼▼▼ ここから下をコピーして、サイドバーのボタン部分を書き換えてください ▼▼▼
+    
+    # 保存ボタン（key付き）
     if c1.button("データ保存", key="btn_save_sidebar"):
         if user_id:
             if save_data_to_sheet(user_id, mode):
@@ -794,6 +797,8 @@ with st.sidebar:
                 st.warning("データが見つかりません")
         else:
             st.error("名前を入力してください")
+            
+    # ▲▲▲ ここまで ▲▲▲
             
     # ▲▲▲ ここまで ▲▲▲
 
@@ -1297,6 +1302,7 @@ elif mode == "週案":
                 
                 st.divider() # 区切り線
     # ▲▲▲ プレビューここまで ▲▲▲
+
 
 
 
