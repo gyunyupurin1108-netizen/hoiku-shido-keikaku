@@ -687,14 +687,6 @@ if 'monthly_data' not in st.session_state: st.session_state['monthly_data'] = {}
 
 # サイドバー設定
 st.sidebar.header("⚙️ 設定")
-age = st.sidebar.selectbox("対象年齢", ["0歳児", "1歳児", "2歳児", "3歳児", "4歳児", "5歳児"])
-mode = st.sidebar.radio("作成する書類", ["年間指導計画", "月案（月間指導計画）", "週案"])
-orient = st.sidebar.radio("用紙向き", ["横", "縦"])
-
-# 掲示板へのリンク
-st.sidebar.markdown("---")
-st.sidebar.link_button("☕ 掲示板（休憩室）へ", "https://hoiku-bbs-ez5sr2ocp4ni2r4ypxuqx6.streamlit.app")
-st.sidebar.markdown("---")
 
 # ▼▼▼ ②ここから下をサイドバーの一番下に追加 ▼▼▼
 st.sidebar.caption("PR: 新年度におすすめの絵本") # st.sidebarをつける
@@ -707,6 +699,17 @@ ad_html = """<table border="0" cellpadding="0" cellspacing="0"><tr><td><div styl
 with st.sidebar:
     components.html(ad_html, height=250)
     # ▲▲▲ ここまで ▲▲▲
+st.sidebar.divider() # 区切り線を入れてから、入力項目へ
+age = st.sidebar.selectbox("対象年齢", ["0歳児", "1歳児", "2歳児", "3歳児", "4歳児", "5歳児"])
+mode = st.sidebar.radio("作成する書類", ["年間指導計画", "月案（月間指導計画）", "週案"])
+orient = st.sidebar.radio("用紙向き", ["横", "縦"])
+
+# 掲示板へのリンク
+st.sidebar.markdown("---")
+st.sidebar.link_button("☕ 掲示板（休憩室）へ", "https://hoiku-bbs-ez5sr2ocp4ni2r4ypxuqx6.streamlit.app")
+st.sidebar.markdown("---")
+
+
 
 
 # ==========================================
