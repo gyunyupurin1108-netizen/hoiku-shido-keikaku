@@ -703,10 +703,11 @@ if 'monthly_data' not in st.session_state: st.session_state['monthly_data'] = {}
 st.sidebar.header("⚙️ 設定")
 
 # ▼▼▼ ②ここから下をサイドバーの一番下に追加 ▼▼▼
-st.sidebar.caption("PR: 新年度におすすめの絵本")
-st.sidebar.components.html(ad_sidebar, height=150) # サイドバー用の変数（ad_sidebar）を使う
-    
-st.sidebar.divider()
+with st.sidebar:
+    st.caption("PR: 新年度におすすめの絵本")
+    # 「st.sidebar.」を消して、インデント（字下げ）して書くのが正解です
+    components.html(ad_sidebar, height=150) 
+    st.divider()
     # ▲▲▲ ここまで ▲▲▲
 st.sidebar.divider() # 区切り線を入れてから、入力項目へ
 age = st.sidebar.selectbox("対象年齢", ["0歳児", "1歳児", "2歳児", "3歳児", "4歳児", "5歳児"])
