@@ -703,7 +703,7 @@ if 'monthly_data' not in st.session_state: st.session_state['monthly_data'] = {}
 st.sidebar.header("⚙️ 設定")
 
 # ▼▼▼ ②ここから下をサイドバーの一番下に追加 ▼▼▼
-st.caption("PR: 定番の人気絵本")
+st.sidebar.caption("PR: 新年度におすすめの絵本")
 components.html(ad_sidebar, height=150) # サイドバー用の変数（ad_sidebar）を使う
     
 st.divider()
