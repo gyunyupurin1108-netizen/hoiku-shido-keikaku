@@ -677,6 +677,11 @@ def ask_gemini_aim(age, keywords, doc_type="月間指導計画"):
 
 
 # --- 4. メイン画面構築 ---
+# メイン画面の最上部に別の広告を出す
+st.caption("PR: 新年度、新しいエプロンで気持ちを入れ替えませんか？")
+components.html(ad_main, height=150) # メイン用の変数（ad_main）を使う
+
+st.divider()
 
 # ロゴとタイトルの表示
 col1, col2 = st.columns([1, 5])
@@ -687,11 +692,6 @@ with col1:
         st.write("📛") # 画像がない場合の代わり
 with col2:
     st.title("保育指導計画システム")
-# メイン画面の最上部に別の広告を出す
-    st.caption("PR: 【新年度】クラスが落ち着く読み聞かせ特集")
-    components.html(ad_main, height=150) # メイン用の変数（ad_main）を使う
-
-    st.divider()
 
 
 # セッション初期化
@@ -699,8 +699,6 @@ if 'annual_data' not in st.session_state: st.session_state['annual_data'] = {}
 if 'monthly_data' not in st.session_state: st.session_state['monthly_data'] = {}
 
 # サイドバー設定
-st.sidebar.header("⚙️ 設定")
-
 # ▼▼▼ ②ここから下をサイドバーの一番下に追加 ▼▼▼
 with st.sidebar:
     st.caption("PR: 新年度におすすめの絵本")
@@ -708,6 +706,9 @@ with st.sidebar:
     components.html(ad_sidebar, height=150) 
     st.divider()
     # ▲▲▲ ここまで ▲▲▲
+st.sidebar.header("⚙️ 設定")
+
+
 st.sidebar.divider() # 区切り線を入れてから、入力項目へ
 age = st.sidebar.selectbox("対象年齢", ["0歳児", "1歳児", "2歳児", "3歳児", "4歳児", "5歳児"])
 mode = st.sidebar.radio("作成する書類", ["年間指導計画", "月案（月間指導計画）", "週案"])
