@@ -680,7 +680,7 @@ def ask_gemini_aim(age, keywords, doc_type="月間指導計画"):
 # --- 4. メイン画面構築 ---
 # メイン画面の最上部に別の広告を出す
 st.caption("PR: 新年度、新しいエプロンで気持ちを入れ替えませんか？")
-components.html(ad_main, height=300) # メイン用の変数（ad_main）を使う
+components.html(ad_main, height=150) # メイン用の変数（ad_main）を使う
 
 st.divider()
 
