@@ -712,7 +712,7 @@ st.sidebar.header("⚙️ 設定")
 
 st.sidebar.divider() # 区切り線を入れてから、入力項目へ
 age = st.sidebar.selectbox("対象年齢", ["0歳児", "1歳児", "2歳児", "3歳児", "4歳児", "5歳児"])
-mode = st.sidebar.radio("作成する書類", ["年間指導計画（整備中）", "月案（月間指導計画）", "週案"])
+mode = st.sidebar.radio("作成する書類", [ "月案（月間指導計画）", "週案","年間指導計画（整備中）"])
 orient = st.sidebar.radio("用紙向き", ["横", "縦"])
 
 # 掲示板へのリンク
