@@ -682,8 +682,6 @@ def ask_gemini_aim(age, keywords, doc_type="月間指導計画"):
 st.caption("PR: 新年度、新しいエプロンで気持ちを入れ替えませんか？")
 components.html(ad_main, height=150) # メイン用の変数（ad_main）を使う
 
-st.divider()
-
 # ロゴとタイトルの表示
 col1, col2 = st.columns([1, 5])
 with col1:
